@@ -1,7 +1,8 @@
 little-box
 ==========
 
-> A little toolkit for build [Hypercore][hypercore] applications.
+> A little toolkit for distributed applications based on
+> [Hypercore][hypercore].
 
 ## Installation
 
