@@ -1,16 +1,11 @@
 const { EventEmitter } = require('events')
 const { Origin } = require('./origin')
 const { source } = require('./storage')
-const Nanoguard = require('nanoguard')
-const duplexify = require('duplexify')
 const { Box } = require('./box')
 const storage = require('./storage')
 const extend = require('extend')
-const assert = require('assert')
-const thunky = require('thunky')
 const debug = require('debug')('little-box:source')
 const pump = require('pump')
-const ram = require('random-access-memory')
 const get = require('get-uri')
 const url = require('url')
 const fs = require('fs')
@@ -76,7 +71,7 @@ class Source extends Origin {
   /**
    */
   [Box.storage](storage, opts) {
-    return source(this.uri, storage)
+    return source(this.uri, storage, null, opts)
   }
 
   /**
@@ -95,7 +90,8 @@ class Source extends Origin {
   /**
   */
   [kSourceStream](opts, done) {
-    get(this.uri, opts, done)
+    const { highWaterMark } = opts
+    get(this.uri, { highWaterMark }, done)
   }
 }
 

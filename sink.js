@@ -23,6 +23,8 @@ class Sink extends Node {
     return false
   }
 
+  /**
+   */
   [Box.codec](opts) {
     return null
   }
@@ -30,7 +32,7 @@ class Sink extends Node {
   /**
    */
   [Box.storage](storage, opts) {
-    return sink(storage)
+    return sink(storage, null, null, opts)
   }
 
   /**

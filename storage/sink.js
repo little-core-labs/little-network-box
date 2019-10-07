@@ -2,7 +2,7 @@ const assert = require('assert')
 const ram = require('random-access-memory')
 const raf = require('random-access-file')
 
-function storage(target, defaultStorage, dataStorage) {
+function storage(target, defaultStorage, dataStorage, opts) {
   if (!defaultStorage) {
     defaultStorage = ram
   }
@@ -13,8 +13,10 @@ function storage(target, defaultStorage, dataStorage) {
 
   assert('string' === typeof target,
     'target filename is not a string.')
+
   assert('function' === typeof defaultStorage,
     'default storage is not a function.')
+
   assert('function' === typeof dataStorage,
     'data storage is not a function.')
 

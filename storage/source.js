@@ -1,4 +1,5 @@
 const assert = require('assert')
+const ras3 = require('random-access-s3')
 const ram = require('random-access-memory')
 const raf = require('random-access-file')
 const rah = require('random-access-http')
@@ -6,7 +7,7 @@ const url = require('url')
 
 /**
  */
-function storage(uri, defaultStorage, dataStorage) {
+function storage(uri, defaultStorage, dataStorage, opts) {
   const { protocol, pathname } = url.parse(uri)
 
   if (!defaultStorage) {
@@ -18,6 +19,10 @@ function storage(uri, defaultStorage, dataStorage) {
       case 'https:':
       case 'http:':
         dataStorage = rah
+        break
+
+      case 's3:':
+        dataStorage = ras3
         break
 
       case 'file:':

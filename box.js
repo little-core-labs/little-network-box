@@ -471,12 +471,13 @@ class Box extends EventEmitter {
       ? args[0]
       : opts
 
-    const { upload, download, encrypt, live, initiator } = opts
+    const { stream, upload, download, encrypt, live, initiator } = opts
 
     return this.feed.replicate(isInitiator, {
       initiator,
       download,
       encrypt,
+      stream,
       upload,
       live,
     })

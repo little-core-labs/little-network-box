@@ -1,8 +1,10 @@
+const HypercoreProtocol = require('hypercore-protocol')
 const { EventEmitter } = require('events')
 const hyperswarm = require('hyperswarm')
 const crypto = require('hypercore-crypto')
 const assert = require('assert')
 const thunky = require('thunky')
+const pump = require('pump')
 
 // quick util
 const bind = (self, f) => (...args) => f.call(self, ...args)
@@ -30,6 +32,14 @@ class Network extends EventEmitter {
 
     this.swarm = hyperswarm(opts)
     this.ready = thunky((done) => this.swarm.once('listening', done))
+
+    if (!opts.publicKey || !opts.secretKey) {
+      const { publicKey, secretKey } = crypto.keyPair()
+    } else {
+      this.publicKey = opts.publicKey
+      this.secretKey = opts.secretKey
+    }
+
     this.ready(this.onready)
     this.swarm.on('disconnection', this.ondisconnection)
     this.swarm.on('connection', this.onconnection)
@@ -47,7 +57,12 @@ class Network extends EventEmitter {
   /**
    */
   onconnection(socket, info) {
-    this.emit('connection', socket, info)
+    const stream = new HypercoreProtocol(info.client, {
+      ack: true, live: true
+    })
+
+    pump(socket, stream, socket)
+    this.emit('connection', stream, info, socket)
   }
 
   /**

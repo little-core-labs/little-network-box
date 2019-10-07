@@ -102,33 +102,28 @@ class Node extends Box {
 
   /**
    */
-  [kNodeConnection](socket, info) {
-    void socket, info
+  [kNodeConnection](stream, info, socket) {
+    void stream, info, socket
     return true
   }
 
   /**
    */
-  onconnection(socket, info) {
-    this.emit('connection', socket, info)
+  onconnection(stream, info, socket) {
+    this.emit('connection', stream, info, socket)
 
     // prevent default
-    if (false === this[Node.connection](socket, info)) {
+    if (false === this[Node.connection](stream, info, socket)) {
       return
     }
 
     const { isOrigin, discoveryKey } = this
     const topic = info.peer && info.peer.topic
-    let stream = null
 
     if (Buffer.isBuffer(topic) && 0 === Buffer.compare(topic, discoveryKey)) {
-      stream = this.replicate(info.client, this)
+      this.replicate(info.client, { stream })
     } else if (!topic && isOrigin) {
-      stream = this.replicate(info.client, this)
-    }
-
-    if (null !== stream) {
-      replicate(socket, stream, this.onerror)
+      this.replicate(info.client, { stream })
     }
   }
 }
