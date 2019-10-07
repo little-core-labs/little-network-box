@@ -14,6 +14,7 @@ class Sink extends Node {
     return extend(true, Node.defaults(), {
       announce: true, lookup: true,
       download: true, upload: false,
+      encryptionKey: null, nonce: null,
     })
   }
 
@@ -32,7 +33,7 @@ class Sink extends Node {
   /**
    */
   [Box.storage](storage, opts) {
-    return sink(storage, null, null, opts)
+    return sink(storage, opts.storage, null, opts)
   }
 
   /**

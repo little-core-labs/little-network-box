@@ -22,6 +22,10 @@ class Network extends EventEmitter {
     super()
     this.setMaxListeners(0)
 
+    if (null === opts || 'object' !== typeof opts) {
+      opts = {}
+    }
+
     this.ondisconnection = bind(this, this.ondisconnection)
     this.onconnection = bind(this, this.onconnection)
     this.onupdated = bind(this, this.onupdated)

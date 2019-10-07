@@ -606,6 +606,18 @@ class Box extends EventEmitter {
   }
 
   /**
+   * Requests downloaded range of Hypercore feed.
+   * Calls `feed.downloaded(...args)`
+   * @public
+   * @method
+   * @param {...Mixed} ...args
+   * @return {undefined}
+   */
+  downloaded(...args) {
+    return this.feed.downloaded(...args)
+  }
+
+  /**
    * Creates a read stream from the Hypercore feed
    * Calls `feed.createReadStream(opts)`
    * @public

@@ -16,6 +16,7 @@ const hooks = require('./hooks')
 
 module.exports = Object.assign(factory(Box), {
 
+  network: factory(Network),
   receive: factory(Receive),
   client: factory(Client),
   reader: factory(Reader),

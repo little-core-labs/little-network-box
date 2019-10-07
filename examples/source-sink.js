@@ -1,4 +1,4 @@
-const { Source, Sink, storage } = require('../')
+const { Source, Sink } = require('../')
 const pump = require('pump')
 const path = require('path')
 const ram = require('random-access-memory')

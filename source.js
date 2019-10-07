@@ -81,6 +81,7 @@ class Source extends Origin {
       if (err) { return done(err) }
       this.feed.ready(() => {
         this[kSourceStream](opts, (err, stream) => {
+          if (err || !stream) { return done(err) }
           pump(stream, this.createWriteStream(), done)
         })
       })
