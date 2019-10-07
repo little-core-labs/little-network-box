@@ -84,6 +84,12 @@ class Client extends EventEmitter {
 
   /**
    */
+  close(callback) {
+    this.network.close(callback)
+  }
+
+  /**
+   */
   onerror(err) {
     if (err) {
       this.emit('error', err)

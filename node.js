@@ -79,7 +79,7 @@ class Node extends Box {
   }
 
   [Box.close](opts) {
-    if (this.network) {
+    if (this.network && false === 'network' in opts)  {
       this.network.destroy()
     }
   }

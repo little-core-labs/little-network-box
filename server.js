@@ -90,6 +90,10 @@ class Server extends EventEmitter {
     return this.publicKey
   }
 
+  close(callback) {
+    this.network.close(callback)
+  }
+
   /**
    */
   onerror(err) {

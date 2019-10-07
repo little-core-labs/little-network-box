@@ -15,13 +15,25 @@ const sources = files.map((uri) => new Source(ram, { uri,
   network: server.network
 }))
 
+let pending = 0
 for (const source of sources) {
+  pending++
   source.ready(() => {
     const destination = path.resolve(__dirname, path.basename(source.uri) + '-copy')
     const sink = new Sink(destination, source.key, {
       network: client.network,
       encryptionKey: source.encryptionKey,
       nonce: source.nonce
+    })
+
+    sink.on('sync', () => {
+      source.close()
+      sink.close()
+      if (0 == --pending) {
+        client.close()
+        server.close()
+        process.nextTick(process.exit)
+      }
     })
   })
 }
