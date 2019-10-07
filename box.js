@@ -14,6 +14,7 @@ const isFunction = (f) => 'function' === typeof f
 const bind = (self, f, ...args) => (...rest) => f.apply(self, args.concat(rest))
 
 // exported symbols attached to the `Box` class
+const kBoxHypercore = Symbol('Box.hypercore')
 const kBoxDefaults = Symbol('Box.defaults')
 const kBoxStorage = Symbol('Box.storage')
 const kBoxOptions = Symbol('Box.options')
