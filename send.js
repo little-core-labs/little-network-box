@@ -31,9 +31,11 @@ class SendOrigin extends Origin {
    */
   [Box.codec](opts) {
     const { encryptionKey, nonce } = opts
-    assert(Buffer.isBuffer(nonce))
-    assert(Buffer.isBuffer(encryptionKey))
-    return codecs.xsalsa20poly1305({ nonce, key: encryptionKey })
+    if (encryptionKey && nonce) {
+      assert(Buffer.isBuffer(nonce))
+      assert(Buffer.isBuffer(encryptionKey))
+      return codecs.xsalsa20poly1305({ nonce, key: encryptionKey })
+    }
   }
 }
 

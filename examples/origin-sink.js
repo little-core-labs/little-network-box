@@ -12,7 +12,7 @@ const origin = new Origin(ram)
 origin.ready(() => {
   const input = origin.createWriteStream()
   const video = fs.createReadStream(source, { highWaterMark: 1024 })
-  const sink = new Sink(storage.sink(destination), origin.key, {
+  const sink = new Sink(destination, origin.key, {
     encryptionKey: origin.encryptionKey,
     nonce: origin.nonce
   })
@@ -20,7 +20,6 @@ origin.ready(() => {
   pump(video, input, (err) => {
     sink.on('sync', ()=> {
       if (sink.byteLength === origin.byteLength) {
-        console.log('sync')
         sink.close()
         origin.close()
         process.nextTick(process.exit)

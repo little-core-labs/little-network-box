@@ -18,10 +18,12 @@ class ReceiveReader extends Reader {
   /**
    */
   [Box.codec](opts) {
-    const { encryptionKey, nonce } = opts
-    assert(Buffer.isBuffer(nonce))
-    assert(Buffer.isBuffer(encryptionKey))
-    return codecs.xsalsa20poly1305({ nonce, encryptionKey })
+    if (encryptionKey && nonce) {
+      const { encryptionKey, nonce } = opts
+      assert(Buffer.isBuffer(nonce))
+      assert(Buffer.isBuffer(encryptionKey))
+      return codecs.xsalsa20poly1305({ nonce, encryptionKey })
+    }
   }
 }
 

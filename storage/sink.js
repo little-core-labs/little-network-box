@@ -2,8 +2,6 @@ const assert = require('assert')
 const ram = require('random-access-memory')
 const raf = require('random-access-file')
 
-/**
- */
 function storage(target, defaultStorage, dataStorage) {
   if (!defaultStorage) {
     defaultStorage = ram

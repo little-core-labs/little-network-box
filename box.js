@@ -1,7 +1,8 @@
 const { EventEmitter } = require('events')
 const hyperswarm = require('hyperswarm')
 const Nanoguard = require('nanoguard')
-const Corestore = require('corestore')
+const duplexify = require('duplexify')
+const hypercore = require('hypercore')
 const extend = require('extend')
 const crypto = require('hypercore-crypto')
 const thunky = require('thunky')
@@ -14,6 +15,7 @@ const bind = (self, f, ...args) => (...rest) => f.apply(self, args.concat(rest))
 
 // exported symbols attached to the `Box` class
 const kBoxDefaults = Symbol('Box.defaults')
+const kBoxStorage = Symbol('Box.storage')
 const kBoxOptions = Symbol('Box.options')
 const kBoxCodec = Symbol('Box.codec')
 const kBoxReady = Symbol('Box.ready')
@@ -23,9 +25,8 @@ const kBoxOpen = Symbol('Box.open')
 const kBoxInit = Symbol('Box.init')
 
 /**
- * The `Box` class represents a container for a hypercore feed
- * and related feeds managed by a `Corestore` instance. This class
- * serves as the base class for the `Edge`, `Origin`, `Reader`
+ * The `Box` class represents a container for a hypercore feed.
+ * This class serves as the base class for the `Edge`, `Origin`, `Reader`
  * `Send`, and `Receive`classes.
  * @public
  * @class Box
@@ -140,7 +141,6 @@ class Box extends EventEmitter {
     this.feed = null
     this.lock = opts.lock || mutex()
     this.guard = new Nanoguard()
-    this.storage = storage
 
     // init hooks
     this.hooks = Array.from(new Set(
@@ -163,33 +163,22 @@ class Box extends EventEmitter {
       opts.valueEncoding = codec.call(this, opts)
     }
 
-    delete opts.key
-    delete opts.hooks
-    delete opts.nonce
-    delete opts.secretKey
-    delete opts.discoveryKey
-    delete opts.encryptionKey
+    // storage factory
+    this.storage = this[kBoxStorage](storage, opts)
 
-    this.corestore = new Corestore(storage, opts)
-    this.corestore.ready(() => {
-      const publicKey = key
+    this.feed = hypercore(this.storage, key, opts)
 
-      this.feed = this.corestore.default(Object.assign({
-        keyPair: { publicKey, secretKey }
-      }, opts))
-
-      this.feed.on('extension', this.onextension)
-      this.feed.on('download', this.ondownload)
-      this.feed.on('upload', this.onupload)
-      this.feed.on('append', this.onappend)
-      this.feed.on('close', this.onclose)
-      this.feed.on('error', this.onerror)
-      this.feed.on('sync', this.onsync)
-      this.ready(() => {
-        this.emit('ready')
-        this.once('close', bind(this, this[kBoxClose], opts))
-        process.nextTick(bind(this, this[kBoxOpen], opts))
-      })
+    this.feed.on('extension', this.onextension)
+    this.feed.on('download', this.ondownload)
+    this.feed.on('upload', this.onupload)
+    this.feed.on('append', this.onappend)
+    this.feed.on('close', this.onclose)
+    this.feed.on('error', this.onerror)
+    this.feed.on('sync', this.onsync)
+    this.ready(() => {
+      this.emit('ready')
+      this.once('close', bind(this, this[kBoxClose], opts))
+      process.nextTick(bind(this, this[kBoxOpen], opts))
     })
   }
 
@@ -348,7 +337,7 @@ class Box extends EventEmitter {
    * Abstract method called during initiation in the constructor
    * before the `init()` step default options that may be configured here
    * by extending classes.
-   * @private
+   * @protected
    * @abstract
    * @method
    * @param {Object} opts
@@ -361,7 +350,7 @@ class Box extends EventEmitter {
   /**
    * Abstract method called during initiation in the constructor
    * after the `options()` step with configured options.
-   * @private
+   * @protected
    * @abstract
    * @method
    * @param {Object} opts
@@ -375,7 +364,7 @@ class Box extends EventEmitter {
    * Abstract method called during initiation in the constructor
    * after the `init()` step with configured options suitable for
    * initialization a value codec for the Hypercore feed.
-   * @private
+   * @protected
    * @abstract
    * @method
    * @param {Object} opts
@@ -388,7 +377,7 @@ class Box extends EventEmitter {
   /**
    * Abstract method called when the Hypercore feed has been opened
    * and is considered ready.
-   * @private
+   * @protected
    * @abstract
    * @method
    * @param {Object} opts
@@ -400,7 +389,7 @@ class Box extends EventEmitter {
 
   /**
    * Abstract method called when the Hypercore feed has closed.
-   * @private
+   * @protected
    * @abstract
    * @method
    * @param {Object} opts
@@ -412,7 +401,7 @@ class Box extends EventEmitter {
 
   /**
    * Abstract method used as a write hook for a Hypercore feed.
-   * @private
+   * @protected
    * @abstract
    * @method
    * @param {Number} index
@@ -426,9 +415,9 @@ class Box extends EventEmitter {
   }
 
   /**
-   * Abstract method method for blocking and calling a callback function
-   * when the instance is considered ready
-   * @private
+   * Abstract method for waiting and calling a callback function
+   * when the instance is considered ready.
+   * @protected
    * @abstract
    * @method
    * @param {Function} opts
@@ -440,6 +429,19 @@ class Box extends EventEmitter {
   }
 
   /**
+   * Abstract method for a storage factory.
+   * @protected
+   * @abstract
+   * @method
+   * @param {String|Object|Function} storage
+   * @param {Function} opts
+   * @return {undefined}
+   */
+  [kBoxStorage](storage, opts) {
+    return storage
+  }
+
+  /**
    * Calls callback when instance is considered ready.
    * @public
    * @method
@@ -447,15 +449,9 @@ class Box extends EventEmitter {
    * @return {undefined}
    */
   ready(done) {
-    if (!this.corestore) {
+    this.feed.ready(() => {
       this[kBoxReady](done)
-    } else {
-      this.corestore.ready(() => {
-        this.feed.ready(() => {
-          this[kBoxReady](done)
-        })
-      })
-    }
+    })
   }
 
   /**
@@ -477,7 +473,7 @@ class Box extends EventEmitter {
 
     const { upload, download, encrypt, live, initiator } = opts
 
-    return this.corestore.replicate(isInitiator, {
+    return this.feed.replicate(isInitiator, {
       initiator,
       download,
       encrypt,
@@ -583,6 +579,18 @@ class Box extends EventEmitter {
   }
 
   /**
+   * Requests audit of Hypercore feed.
+   * Calls `feed.audit(...args)`
+   * @public
+   * @method
+   * @param {...Mixed} ...args
+   * @return {undefined}
+   */
+  audit(...args) {
+    this.ready(() => this.feed.audit(...args))
+  }
+
+  /**
    * Creates a read stream from the Hypercore feed
    * Calls `feed.createReadStream(opts)`
    * @public
@@ -590,8 +598,8 @@ class Box extends EventEmitter {
    * @param {Object} opts
    * @return {?(Stream)}
    */
-  createReadStream(opts) {
-    return this.feed ? this.feed.createReadStream(opts) : null
+  createReadStream(...args) {
+    return this.feed.createReadStream(...args)
   }
 
   /**
@@ -603,7 +611,7 @@ class Box extends EventEmitter {
    * @return {?(Stream)}
    */
   createWriteStream(...args) {
-    return this.feed ? this.feed.createWriteStream(...args) : null
+    return this.feed.createWriteStream(...args)
   }
 
   /**
@@ -754,6 +762,14 @@ Box.write = kBoxWrite
  * @type {Symbol}
  */
 Box.ready = kBoxReady
+
+/**
+ * The `Box.storage` symbol for the storage factory method.
+ * @public
+ * @static
+ * @type {Symbol}
+ */
+Box.storage = kBoxStorage
 
 /**
  * The `Box.defaults` symbol for the `defaults()` method.

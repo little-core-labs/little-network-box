@@ -10,7 +10,6 @@ const pump = require('pump')
 // quick util
 const bind = (self, f) => (...args) => f.call(self, ...args)
 
-
 // exported symbols attached to the `Node` class
 const kNodeConnection = Symbol('Node.connection')
 
@@ -39,10 +38,18 @@ class Node extends Box {
   [Box.options](opts) {
     super[Box.options](opts)
 
-    opts.nonce = toBuffer(opts.nonce || crypto.randomBytes(24), 'hex')
-    opts.discoveryKey = toBuffer(opts.discoveryKey, 'hex')
-    opts.encryptionKey = toBuffer(
-      opts.encryptionKey || opts.secretKey || opts.key, 'hex')
+    if (null !== opts.nonce) {
+      opts.nonce = toBuffer(opts.nonce || crypto.randomBytes(24), 'hex')
+    }
+
+    if (null !== opts.discoveryKey) {
+      opts.discoveryKey = toBuffer(opts.discoveryKey, 'hex')
+    }
+
+    if (null !== opts.encryptionKey) {
+      opts.encryptionKey = toBuffer(
+        opts.encryptionKey || opts.secretKey || opts.key, 'hex')
+    }
   }
 
   /**
@@ -64,9 +71,11 @@ class Node extends Box {
    */
   [Box.codec](opts) {
     const { encryptionKey, nonce } = opts
-    assert(Buffer.isBuffer(nonce))
-    assert(Buffer.isBuffer(encryptionKey))
-    return codecs.xsalsa20({ nonce, key: encryptionKey })
+    if (encryptionKey && nonce) {
+      assert(Buffer.isBuffer(nonce))
+      assert(Buffer.isBuffer(encryptionKey))
+      return codecs.xsalsa20({ encryptionKey, nonce })
+    }
   }
 
   [Box.close](opts) {

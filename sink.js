@@ -1,4 +1,5 @@
 const { Node } = require('./node')
+const { sink } = require('./storage')
 const { Box } = require('./box')
 const extend = require('extend')
 const hooks =  require('./hooks')
@@ -22,10 +23,26 @@ class Sink extends Node {
     return false
   }
 
+  [Box.codec](opts) {
+    return null
+  }
+
+  /**
+   */
+  [Box.storage](storage, opts) {
+    return sink(storage)
+  }
+
   /**
    */
   [Box.write](index, data, peer, done) {
-    return hooks.xsalsa20(this).call(this, index, data, peer, done)
+    const { encryptionKey, nonce, feed } = this
+    if (encryptionKey && nonce) {
+      const hook =  hooks.xsalsa20(this)
+      return hook.call(feed, index, data, peer, done)
+    } else {
+      return done(null)
+    }
   }
 }
 
