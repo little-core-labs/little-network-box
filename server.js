@@ -1,6 +1,7 @@
 const { EventEmitter } = require('events')
 const { Network } = require('./network')
 const toBuffer = require('to-buffer')
+const protocol = require('rpc-protocol')
 const crypto = require('hypercore-crypto')
 const assert = require('assert')
 
@@ -104,8 +105,8 @@ class Server extends EventEmitter {
 
   /**
    */
-  onconnection(connection) {
-    this.emit('connection', connection)
+  onconnection(connection, info, socket) {
+    this.emit('connection', connection, info, socket)
   }
 
   /**

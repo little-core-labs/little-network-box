@@ -1,6 +1,7 @@
 const { EventEmitter } = require('events')
 const { Network } = require('./network')
 const toBuffer = require('to-buffer')
+const protocol = require('rpc-protocol')
 const crypto = require('hypercore-crypto')
 const assert = require('assert')
 

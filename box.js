@@ -166,7 +166,8 @@ class Box extends EventEmitter {
     // storage factory
     this.storage = this[kBoxStorage](storage, opts)
 
-    this.feed = hypercore(this.storage, key, opts)
+    // hypercore factory
+    this.feed = this[kBoxHypercore](opts)(this.storage, key, opts)
 
     this.feed.on('extension', this.onextension)
     this.feed.on('download', this.ondownload)
@@ -434,11 +435,23 @@ class Box extends EventEmitter {
    * @abstract
    * @method
    * @param {String|Object|Function} storage
-   * @param {Function} opts
+   * @param {Object} opts
    * @return {undefined}
    */
   [kBoxStorage](storage, opts) {
     return storage
+  }
+
+  /**
+   * Abstract method for a hypercore factory.
+   * @protected
+   * @abstract
+   * @method
+   * @param {Object} opts
+   * @return {Function}
+   */
+  [kBoxHypercore](opts) {
+    return hypercore
   }
 
   /**
@@ -771,6 +784,14 @@ Box.ready = kBoxReady
  * @type {Symbol}
  */
 Box.storage = kBoxStorage
+
+/**
+ * The `Box.hypercore` symbol for the hypercore factory method.
+ * @public
+ * @static
+ * @type {Symbol}
+ */
+Box.hypercore = kBoxHypercore
 
 /**
  * The `Box.defaults` symbol for the `defaults()` method.
