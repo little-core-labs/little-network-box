@@ -56,10 +56,7 @@ constants `little-box` exports publically.
 
 ### `Box(storage, key, options)`
 
-The `Box` class represents a container for a hypercore feed
-and related feeds managed by a `Corestore` instance. This class
-serves as the base class for the various classes exported by
-`little-box`.
+> TBA
 
 ```js
 const { Box, codecs, hooks } = require('little-box')

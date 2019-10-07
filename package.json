@@ -11,7 +11,6 @@
   "dependencies": {
     "batch": "^0.6.1",
     "collect-stream": "^1.2.1",
-    "corestore": "^4.0.4",
     "debug": "^4.1.1",
     "duplexify": "^4.1.1",
     "extend": "^3.0.2",
