@@ -32,6 +32,12 @@ class Sink extends Node {
 
   /**
    */
+  [Box.storage](storage, opts) {
+    return sink(storage, opts.storage, null, opts)
+  }
+
+  /**
+   */
   [Box.write](index, data, peer, done) {
     const { encryptionKey, nonce, feed } = this
     if (encryptionKey && nonce) {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { Source, Sink } = require('../')
+const Progress = require('progress')
 const minimist = require('minimist')
 const pretty = require('pretty-hash')
 const debug = require('debug')
@@ -88,6 +89,8 @@ async function main() {
       nonce: argv.nonce,
     })
 
+    sink.on('error', onerror)
+
     sink.ready(() => {
       console.log(' info: sink %s online', pretty(sink.key))
       console.log(' info: sink %s online file= %s', pretty(sink.key),
@@ -96,15 +99,34 @@ async function main() {
         pretty(sink.key), sink.key.toString('hex'))
     })
 
-    sink.on('connection', () => {
+    sink.once('connection', () => {
+      const now = Date.now()
       console.log(' info: sink %s connection', pretty(sink.key))
-    })
 
-    sink.on('sync', () =>{
-      console.log('sync');
-    })
+      sink.on('sync', () => {
+        if (sink.downloaded() === sink.length) {
+          console.log(' info: sink %s did finish syncing %s blocks',
+            pretty(sink.key), sink.length)
+          sink.close()
+          process.nextTick(process.exit)
+        }
+      })
 
-    sink.on('error', onerror)
+      sink.update(() => {
+        const progress = new Progress(' info: downloading [:bar] :rate/bps :percent :etas', {
+          complete: '#',
+          incomplete: '-',
+          width: 20,
+          total: sink.length
+        })
+
+        console.log(' info: starting download... [%d blocks]',
+          sink.length - sink.downloaded())
+
+        progress.tick(sink.downloaded())
+        sink.on('download', () => progress.tick())
+      })
+    })
   }
 
   if (!argv.source && !argv.sink) {
