@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 
-const { Source, Sink } = require('../')
+const { Source, Origin, Sink } = require('../')
 const Progress = require('progress')
 const minimist = require('minimist')
 const pretty = require('pretty-hash')
 const debug = require('debug')
 const path = require('path')
+const pump = require('pump')
 const ram = require('random-access-memory')
+const raf = require('random-access-file')
 const pkg = require('../package.json')
+const fs = require('fs')
 
 const { DEBUG = '' } = process.env
 const argv = minimist(process.argv.slice(2), {
@@ -21,6 +24,7 @@ const argv = minimist(process.argv.slice(2), {
     'encryption-key',
     'secret-key',
     'source',
+    'origin',
     'nonce',
     'sink',
     'key',
@@ -42,12 +46,15 @@ const argv = minimist(process.argv.slice(2), {
 const usage = `usage: little-box [-hDV] [options]
 where options can be:
 
+  --origin <origin>       Share an origin
   --source <source>       Share a source
   --sink <destination>    Download into sink
   -h, --help              Show this message
   -D, --debug             Enable debug output (DEBUG="${pkg.name}")
   -V, --version           Show program version
 `
+
+process.on('uncaughtException', onerror)
 
 void main().catch(onfatal)
 async function main() {
@@ -76,6 +83,10 @@ async function main() {
         pretty(source.key), source.key.toString('hex'))
     })
 
+    source.audit((err, report) => {
+      console.log(' info: source %s audit=', pretty(source.key), report)
+    })
+
     source.on('connection', () => {
       console.log(' info: source %s connection', pretty(source.key))
     })
@@ -87,6 +98,9 @@ async function main() {
     const sink = new Sink(path.resolve(argv.sink), argv.key, {
       encryptionKey: argv['encryption-key'],
       nonce: argv.nonce,
+      storage(filename) {
+        return raf(`${path.resolve(argv.sink)}.${filename}`)
+      }
     })
 
     sink.on('error', onerror)
@@ -129,7 +143,36 @@ async function main() {
     })
   }
 
-  if (!argv.source && !argv.sink) {
+  if (argv.origin) {
+    const origin = new Origin(ram, argv.key, {
+      encryptionKey: argv['encryption-key'],
+      secretKey: argv['secret-key'],
+      nonce: argv.nonce,
+    })
+
+    origin.ready(() => {
+      pump(fs.createReadStream(argv.origin, { highWaterMark: 1024 }), origin.createWriteStream(), (err) => {
+        if (err) { onfatal(err) }
+
+        origin.audit((err, report) => {
+          console.log(' info: origin %s audit=', pretty(origin.key), report)
+        })
+      })
+
+      console.log(' info: origin %s online', pretty(origin.key))
+      console.log(' info: origin %s file= %s', pretty(origin.key), argv.origin)
+      console.log(' info: origin %s key= %s',
+        pretty(origin.key), origin.key.toString('hex'))
+    })
+
+    origin.on('connection', () => {
+      console.log(' info: origin %s connection', pretty(origin.key))
+    })
+
+    origin.on('error', onerror)
+  }
+
+  if (!argv.origin && !argv.source && !argv.sink) {
     console.error(usage)
     return process.nextTick(process.exit, 1)
   }

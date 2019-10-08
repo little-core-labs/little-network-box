@@ -4,7 +4,7 @@ const raf = require('random-access-file')
 
 function storage(target, defaultStorage, dataStorage, opts) {
   if (!defaultStorage) {
-    defaultStorage = ram
+    defaultStorage = raf
   }
 
   if (!dataStorage) {
