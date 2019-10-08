@@ -9,7 +9,7 @@ class Origin extends Node {
    */
   static defaults() {
     return extend(true, Node.defaults(), {
-      announce: true, lookup: false,
+      announce: true, lookup: true,
       download: false, upload: true,
     })
   }

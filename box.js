@@ -476,25 +476,8 @@ class Box extends EventEmitter {
    * @param {?(Mixed)} ...args
    * @return {Stream}
    */
-  replicate(opts, ...args) {
-    const isInitiator = 'boolean' === typeof opts
-      ? opts
-      : !this.isOrigin
-
-    opts = 'boolean' === typeof opts
-      ? args[0]
-      : opts
-
-    const { stream, upload, download, encrypt, live, initiator } = opts || {}
-
-    return this.feed.replicate(isInitiator, {
-      initiator,
-      download,
-      encrypt,
-      stream,
-      upload,
-      live,
-    })
+  replicate(...args) {
+    return this.feed.replicate(...args)
   }
 
   /**
