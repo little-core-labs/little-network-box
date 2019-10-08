@@ -1,10 +1,11 @@
 const assert = require('assert')
+const path = require('path')
 const ram = require('random-access-memory')
 const raf = require('random-access-file')
 
 function storage(target, defaultStorage, dataStorage, opts) {
   if (!defaultStorage) {
-    defaultStorage = raf
+    defaultStorage = ram
   }
 
   if (!dataStorage) {
@@ -28,7 +29,7 @@ function storage(target, defaultStorage, dataStorage, opts) {
     if (filename.endsWith('data')) {
       return dataStorage(target)
     } else {
-      return defaultStorage(filename)
+      return defaultStorage(path.resolve(`${target}.${filename}`))
     }
   }
 }

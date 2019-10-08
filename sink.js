@@ -15,7 +15,6 @@ class Sink extends Node {
       announce: true, lookup: true,
       download: true, upload: true,
       ephemeral: true,
-      encrypt: false,
       encryptionKey: null, nonce: null,
     })
   }

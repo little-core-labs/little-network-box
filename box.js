@@ -135,7 +135,7 @@ class Box extends EventEmitter {
     const { codec = this[kBoxCodec] } = opts
 
     // defaults
-    extend(true, opts, this.constructor.defaults(), opts)
+    opts = extend(true, this.constructor.defaults(), opts)
 
     this[kBoxOptions](opts)
 

@@ -11,7 +11,6 @@ class Origin extends Node {
     return extend(true, Node.defaults(), {
       announce: true, lookup: false,
       download: false, upload: true,
-      sparse: true,
     })
   }
 
