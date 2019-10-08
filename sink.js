@@ -12,8 +12,10 @@ class Sink extends Node {
    */
   static defaults() {
     return extend(true, Node.defaults(), {
-      announce: false, lookup: true,
-      download: true, upload: false,
+      announce: true, lookup: true,
+      download: true, upload: true,
+      ephemeral: true,
+      encrypt: false,
       encryptionKey: null, nonce: null,
     })
   }

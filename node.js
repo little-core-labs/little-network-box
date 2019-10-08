@@ -119,11 +119,12 @@ class Node extends Box {
 
     const { isOrigin, discoveryKey } = this
     const topic = info.peer && info.peer.topic
+    const { download, upload, encrypt, live } = this
 
     if (Buffer.isBuffer(topic) && 0 === Buffer.compare(topic, discoveryKey)) {
-      this.replicate(info.client, { stream, ack: true, live: true })
+      this.replicate(info.client, { download, upload, encrypt, stream, ack: true, live: true }).on('error', console.log)
     } else if (!topic && isOrigin) {
-      this.replicate(info.client, { stream, ack: true })
+      this.replicate(info.client, { download, upload, encrypt, stream, ack: true }).on('error', console.log)
     }
   }
 }
