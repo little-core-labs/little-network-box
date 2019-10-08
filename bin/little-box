@@ -140,6 +140,7 @@ async function main() {
         console.log(' info: starting download... [%d blocks]',
           sink.length - sink.downloaded())
 
+        progress.tick(sink.downloaded())
         sink.on('download', () => progress.tick(sink.downloaded()))
       })
     })

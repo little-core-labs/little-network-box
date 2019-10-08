@@ -61,7 +61,7 @@ class Network extends EventEmitter {
   /**
    */
   onconnection(socket, info) {
-    const stream = new HypercoreProtocol(info.client, {
+    const stream = new HypercoreProtocol({
       ack: true,
       live: true
     })
