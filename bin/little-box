@@ -123,10 +123,22 @@ async function main() {
       let progress = null
       download(sink, { concurrency: 4, stride: 256 }, () => {
         console.log(' info: sink %s download complete', prettyHash(sink.key))
+        if (progress) {
+          progress.update(1)
+        }
+
+        if (sink.downloaded() === sink.length) {
+          sink.close()
+          process.nextTick(process.exit)
+        }
       })
 
       sink.on('sync', () => {
         if (sink.downloaded() === sink.length) {
+          if (progress) {
+            progress.update(1)
+          }
+
           console.log(' info: sink %s did finish syncing %s blocks',
             prettyHash(sink.key), sink.length)
           sink.close()
