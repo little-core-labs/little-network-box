@@ -17,6 +17,7 @@ const sources = files.map((uri) => new Source(ram, { uri,
 
 let pending = 0
 for (const source of sources) {
+  console.log('pending', source.uri);
   pending++
   source.ready(() => {
     const destination = path.resolve(__dirname, path.basename(source.uri) + '-copy')
@@ -27,6 +28,7 @@ for (const source of sources) {
     })
 
     sink.on('sync', () => {
+      console.log('sync', source.uri);
       source.close()
       sink.close()
       if (0 == --pending) {

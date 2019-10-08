@@ -62,6 +62,8 @@ class Network extends EventEmitter {
    */
   onconnection(socket, info) {
     const stream = new HypercoreProtocol({
+      // TODO
+      encrypt: false,
       ack: true,
       live: true
     })

@@ -79,8 +79,11 @@ class Node extends Box {
   }
 
   [Box.close](opts) {
-    if (this.network && false === 'network' in opts)  {
-      this.network.destroy()
+    if (this.network) {
+      this.network.removeListener('connection', this.onconnection)
+      if (false === 'network' in opts) {
+        this.network.destroy()
+      }
     }
   }
 

@@ -30,7 +30,7 @@ class Source extends Origin {
   static defaults() {
     return extend(true, Origin.defaults(), {
       encryptionKey: null,
-      highWaterMark: 4 * 1024,
+      highWaterMark: 64 * 1024,
       indexing: true,
       nonce: null
     })
