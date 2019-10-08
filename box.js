@@ -485,7 +485,7 @@ class Box extends EventEmitter {
       ? args[0]
       : opts
 
-    const { stream, upload, download, encrypt, live, initiator } = opts
+    const { stream, upload, download, encrypt, live, initiator } = opts || {}
 
     return this.feed.replicate(isInitiator, {
       initiator,
@@ -506,7 +506,7 @@ class Box extends EventEmitter {
    * @return {undefined}
    */
   update(...args) {
-    this.ready(() => this.feed.update(...args))
+    this.feed.update(...args)
   }
 
   /**
@@ -518,7 +518,7 @@ class Box extends EventEmitter {
    * @return {undefined}
    */
   close(...args) {
-    this.ready(() => this.feed.close(...args))
+    this.feed.close(...args)
   }
 
   /**

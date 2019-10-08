@@ -12,7 +12,7 @@ class Sink extends Node {
    */
   static defaults() {
     return extend(true, Node.defaults(), {
-      announce: true, lookup: true,
+      announce: false, lookup: true,
       download: true, upload: false,
       encryptionKey: null, nonce: null,
     })
@@ -28,12 +28,6 @@ class Sink extends Node {
    */
   [Box.codec](opts) {
     return null
-  }
-
-  /**
-   */
-  [Box.storage](storage, opts) {
-    return sink(storage, opts.storage, null, opts)
   }
 
   /**

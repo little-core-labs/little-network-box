@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "A little toolkit for distributed applications.",
   "main": "index.js",
+  "bin": {
+    "little-box": "bin/little-box"
+  },
   "scripts": {
     "test": "node test/*.js"
   },
@@ -21,8 +24,10 @@
     "hypercore-replicate": "^0.3.0",
     "hypercore-xsalsa20-onwrite-hook": "^0.2.0",
     "hyperswarm": "^2.1.1",
+    "minimist": "^1.2.0",
     "mutexify": "^1.2.0",
     "nanoguard": "^1.2.1",
+    "pretty-hash": "^1.0.1",
     "pump": "^3.0.0",
     "random-access-file": "^2.1.3",
     "random-access-http": "^2.0.1",

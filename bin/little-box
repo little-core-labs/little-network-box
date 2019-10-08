@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+
+const { Source, Sink } = require('../')
+const minimist = require('minimist')
+const pretty = require('pretty-hash')
+const debug = require('debug')
+const path = require('path')
+const ram = require('random-access-memory')
+const pkg = require('../package.json')
+
+const { DEBUG = '' } = process.env
+const argv = minimist(process.argv.slice(2), {
+  boolean: [
+    'help',
+    'debug',
+    'version',
+  ],
+
+  string: [
+    'encryption-key',
+    'secret-key',
+    'source',
+    'nonce',
+    'sink',
+    'key',
+  ],
+
+  alias: {
+    help: 'h',
+    debug: 'D',
+    version: 'V',
+  },
+
+  default: {
+    help: false,
+    debug: false,
+    version: false,
+  }
+})
+
+const usage = `usage: little-box [-hDV] [options]
+where options can be:
+
+  --source <source>       Share a source
+  --sink <destination>    Download into sink
+  -h, --help              Show this message
+  -D, --debug             Enable debug output (DEBUG="${pkg.name}")
+  -V, --version           Show program version
+`
+
+void main().catch(onfatal)
+async function main() {
+  if (argv.help) {
+    console.log(usage)
+    return process.nextTick(process.exit)
+  }
+
+  if (argv.version) {
+    console.log(pkg.version)
+    return process.nextTick(process.exit)
+  }
+
+  if (argv.source) {
+    const source = new Source(ram, argv.key, {
+      encryptionKey: argv['encryption-key'],
+      secretKey: argv['secret-key'],
+      nonce: argv.nonce,
+      uri: path.resolve(argv.source)
+    })
+
+    source.ready(() => {
+      console.log(' info: source %s online', pretty(source.key))
+      console.log(' info: source %s file= %s', pretty(source.key), source.uri)
+      console.log(' info: source %s key= %s',
+        pretty(source.key), source.key.toString('hex'))
+    })
+
+    source.on('connection', () => {
+      console.log(' info: source %s connection', pretty(source.key))
+    })
+
+    source.on('error', onerror)
+  }
+
+  if (argv.sink) {
+    const sink = new Sink(path.resolve(argv.sink), argv.key, {
+      encryptionKey: argv['encryption-key'],
+      nonce: argv.nonce,
+    })
+
+    sink.ready(() => {
+      console.log(' info: sink %s online', pretty(sink.key))
+      console.log(' info: sink %s online file= %s', pretty(sink.key),
+        path.resolve(argv.sink))
+      console.log(' info: sink %s key= %s',
+        pretty(sink.key), sink.key.toString('hex'))
+    })
+
+    sink.on('connection', () => {
+      console.log(' info: sink %s connection', pretty(sink.key))
+    })
+
+    sink.on('sync', () =>{
+      console.log('sync');
+    })
+
+    sink.on('error', onerror)
+  }
+
+  if (!argv.source && !argv.sink) {
+    console.error(usage)
+    return process.nextTick(process.exit, 1)
+  }
+}
+
+function onerror(err, fatal) {
+  if (err) {
+    debug(err.stack || err)
+    console.error(fatal ? 'fatal:' : 'error:', err.message)
+  }
+}
+
+function onfatal(err) {
+  if (err) {
+    onerror(err, true)
+    process.nextTick(process.exit, 1)
+  }
+}
