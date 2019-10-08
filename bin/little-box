@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 const { Source, Origin, Sink } = require('../')
+const prettyBytes = require('pretty-bytes')
+const prettyHash = require('pretty-hash')
 const download = require('hypercore-download')
 const Progress = require('progress')
 const minimist = require('minimist')
-const pretty = require('pretty-hash')
 const debug = require('debug')('little-box')
 const path = require('path')
 const pump = require('pump')
@@ -78,18 +79,21 @@ async function main() {
     })
 
     source.ready(() => {
-      console.log(' info: source %s online', pretty(source.key))
-      console.log(' info: source %s file= %s', pretty(source.key), source.uri)
+      console.log(' info: source %s online', prettyHash(source.key))
+      console.log(' info: source %s file= %s',
+        prettyHash(source.key), source.uri)
       console.log(' info: source %s key= %s',
-        pretty(source.key), source.key.toString('hex'))
+        prettyHash(source.key), source.key.toString('hex'))
     })
 
     source.audit((err, report) => {
-      console.log(' info: source %s audit=', pretty(source.key), report)
+      console.log(' info: source %s audit=', prettyHash(source.key), report)
+      console.log(' info: source %s byteLength=',
+        prettyHash(source.key), prettyBytes(source.byteLength))
     })
 
     source.on('connection', () => {
-      console.log(' info: source %s connection', pretty(source.key))
+      console.log(' info: source %s connection', prettyHash(source.key))
     })
 
     source.on('error', onerror)
@@ -98,49 +102,60 @@ async function main() {
   if (argv.sink) {
     const sink = new Sink(path.resolve(argv.sink), argv.key, {
       encryptionKey: argv['encryption-key'],
-      nonce: argv.nonce
+      nonce: argv.nonce,
+      storage: raf
     })
 
     sink.on('error', onerror)
 
     sink.ready(() => {
-      console.log(' info: sink %s online', pretty(sink.key))
-      console.log(' info: sink %s online file= %s', pretty(sink.key),
+      console.log(' info: sink %s online', prettyHash(sink.key))
+      console.log(' info: sink %s online file= %s', prettyHash(sink.key),
         path.resolve(argv.sink))
       console.log(' info: sink %s key= %s',
-        pretty(sink.key), sink.key.toString('hex'))
+        prettyHash(sink.key), sink.key.toString('hex'))
     })
 
     sink.once('connection', () => {
       const now = Date.now()
-      console.log(' info: sink %s connection', pretty(sink.key))
+      console.log(' info: sink %s connection', prettyHash(sink.key))
 
       let progress = null
-      download(sink, { concurrency: 4, stride: 32 }, () => {
-        console.log(' info: sink %s download complete', pretty(sink.key))
+      download(sink, { concurrency: 4, stride: 256 }, () => {
+        console.log(' info: sink %s download complete', prettyHash(sink.key))
       })
 
       sink.on('sync', () => {
         if (sink.downloaded() === sink.length) {
           console.log(' info: sink %s did finish syncing %s blocks',
-            pretty(sink.key), sink.length)
+            prettyHash(sink.key), sink.length)
           sink.close()
           process.nextTick(process.exit)
         }
       })
 
-      sink.update(() => {
+      sink.update(1, () => {
         console.log(' info: starting download... [%d blocks]', sink.length - sink.downloaded())
 
-        const progress = new Progress(' info: downloading [:bar] :rate/bps :percent :etas', {
+        let downloaded = sink.downloaded()
+        const progress = new Progress(' info: downloading [:bar] :rate/bps (:current/:total) :percent :etas', {
           complete: '#',
           incomplete: '-',
           width: 20,
-          total: sink.length
+          total: sink.length - sink.downloaded()
         })
 
-        progress.tick(sink.downloaded())
-        sink.on('download', () => progress.tick(sink.downloaded()))
+        sink.update(() => {
+          console.log(sink.downloaded());
+        })
+
+        sink.on('download', (s) => {
+          progress.total = sink.length
+          if (!progress.complete) {
+            progress.tick(sink.downloaded() - downloaded)
+            downloaded = sink.downloaded()
+          }
+        })
       })
     })
   }
@@ -157,18 +172,18 @@ async function main() {
         if (err) { onfatal(err) }
 
         origin.audit((err, report) => {
-          console.log(' info: origin %s audit=', pretty(origin.key), report)
+          console.log(' info: origin %s audit=', prettyHash(origin.key), report)
         })
       })
 
-      console.log(' info: origin %s online', pretty(origin.key))
-      console.log(' info: origin %s file= %s', pretty(origin.key), argv.origin)
+      console.log(' info: origin %s online', prettyHash(origin.key))
+      console.log(' info: origin %s file= %s', prettyHash(origin.key), argv.origin)
       console.log(' info: origin %s key= %s',
-        pretty(origin.key), origin.key.toString('hex'))
+        prettyHash(origin.key), origin.key.toString('hex'))
     })
 
     origin.on('connection', () => {
-      console.log(' info: origin %s connection', pretty(origin.key))
+      console.log(' info: origin %s connection', prettyHash(origin.key))
     })
 
     origin.on('error', onerror)
