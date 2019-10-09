@@ -1,6 +1,6 @@
 {
   "name": "little-network-box",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A little toolkit for distributed applications.",
   "main": "index.js",
   "bin": {
