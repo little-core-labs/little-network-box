@@ -3,7 +3,7 @@ const path = require('path')
 const ram = require('random-access-memory')
 const raf = require('random-access-file')
 
-function storage(target, defaultStorage, dataStorage, opts) {
+function storage(sink, target, defaultStorage, dataStorage, opts) {
   if (!defaultStorage) {
     defaultStorage = ram
   }
@@ -28,6 +28,10 @@ function storage(target, defaultStorage, dataStorage, opts) {
 
     if (filename.endsWith('data')) {
       return dataStorage(target)
+    } else if (filename.endsWith('secret_key')) {
+      return ram(sink.secretKey || opts.secretKey)
+    } else if (filename.endsWith('key')) {
+      return ram(sink.key || opts.key)
     } else {
       return defaultStorage(path.resolve(`${target}.${filename}`))
     }

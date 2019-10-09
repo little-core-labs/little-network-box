@@ -114,6 +114,7 @@ async function main() {
         path.resolve(argv.sink))
       console.log(' info: sink %s key= %s',
         prettyHash(sink.key), sink.key.toString('hex'))
+
     })
 
     sink.once('connection', () => {
@@ -122,7 +123,10 @@ async function main() {
 
       let progress = null
       download(sink, { concurrency: 4, stride: 256 }, () => {
-        console.log(' info: sink %s download complete', prettyHash(sink.key))
+        console.log(' info: sink %s download complete in %s seconds',
+          prettyHash(sink.key),
+          (Date.now() - now).toPrecision(2))
+
         if (progress) {
           progress.update(1)
         }
@@ -139,27 +143,25 @@ async function main() {
             progress.update(1)
           }
 
-          console.log(' info: sink %s did finish syncing %s blocks',
-            prettyHash(sink.key), sink.length)
+          console.log(' info: sink %s did finish syncing %s blocks in %s seconds',
+            prettyHash(sink.key), sink.length, (Date.now() - now).toPrecision(2))
           sink.close()
           process.nextTick(process.exit)
         }
       })
 
       sink.update(1, () => {
-        console.log(' info: starting download... [%d blocks]', sink.length - sink.downloaded())
+        console.log(' info: starting download... [%d blocks remaining]', sink.length - sink.downloaded())
 
         let downloaded = sink.downloaded()
         const progress = new Progress(' info: downloading [:bar] :rate/bps (:current/:total) :percent :etas', {
           complete: '#',
           incomplete: '-',
           width: 20,
-          total: sink.length - sink.downloaded()
+          total: sink.length
         })
 
-        sink.update(() => {
-          console.log(sink.downloaded());
-        })
+        progress.update(sink.downloaded() / sink.length)
 
         sink.on('download', (s) => {
           progress.total = sink.length

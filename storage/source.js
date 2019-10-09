@@ -7,7 +7,7 @@ const url = require('url')
 
 /**
  */
-function storage(uri, defaultStorage, dataStorage, opts) {
+function storage(source, uri, defaultStorage, dataStorage, opts) {
   const { protocol, pathname } = url.parse(uri)
 
   if (!defaultStorage) {
@@ -48,6 +48,10 @@ function storage(uri, defaultStorage, dataStorage, opts) {
 
     if (filename.endsWith('data')) {
       return dataStorage(uri)
+    } else if (filename.endsWith('secret_key')) {
+      return ram(source.secretKey || opts.secretKey)
+    } else if (filename.endsWith('key')) {
+      return ram(source.key || opts.key)
     } else {
       return defaultStorage(filename)
     }

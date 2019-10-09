@@ -71,7 +71,7 @@ class Source extends Origin {
   /**
    */
   [Box.storage](storage, opts) {
-    return source(this.uri, storage, null, opts)
+    return source(this, this.uri, storage, null, opts)
   }
 
   /**

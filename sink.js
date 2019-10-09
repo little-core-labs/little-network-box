@@ -35,7 +35,7 @@ class Sink extends Node {
   /**
    */
   [Box.storage](storage, opts) {
-    return sink(storage, opts.storage, null, opts)
+    return sink(this, storage, opts.storage, null, opts)
   }
 
   /**

@@ -43,7 +43,9 @@ class Box extends EventEmitter {
    * @return {Object}
    */
   static defaults(opts) {
-    return extend(true, {}, opts)
+    return extend(true, {
+      storeSecretKey: false,
+    }, opts)
   }
 
   /**
