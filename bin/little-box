@@ -15,6 +15,8 @@ const raf = require('random-access-file')
 const pkg = require('../package.json')
 const fs = require('fs')
 
+process.title = 'little-box'
+
 const { DEBUG = '' } = process.env
 const argv = minimist(process.argv.slice(2), {
   boolean: [
@@ -71,33 +73,43 @@ async function main() {
     return process.nextTick(process.exit)
   }
 
-  if (argv.source) {
-    const source = new Source(ram, argv.key && argv['secret-key'] ? argv.key : null, {
-      encryptionKey: argv['encryption-key'],
-      secretKey: argv['secret-key'],
-      nonce: argv.nonce,
-      uri: path.resolve(argv.source)
-    })
+  if (!Array.isArray(argv.source)) {
+    argv.source = [ argv.source ].filter(Boolean)
+  }
 
-    source.ready(() => {
-      console.log(' info: source %s online', prettyHash(source.key))
-      console.log(' info: source %s file= %s',
-        prettyHash(source.key), source.uri)
-      console.log(' info: source %s key= %s',
-        prettyHash(source.key), source.key.toString('hex'))
-    })
+  if (argv.source.length) {
+    for (const src of argv.source) {
+      const source = new Source(ram, argv.key && argv['secret-key'] ? argv.key : null, {
+        encryptionKey: argv['encryption-key'],
+        secretKey: argv['secret-key'],
+        nonce: argv.nonce,
+        uri: path.resolve(src)
+      })
 
-    source.audit((err, report) => {
-      console.log(' info: source %s audit=', prettyHash(source.key), report)
-      console.log(' info: source %s byteLength=',
-        prettyHash(source.key), prettyBytes(source.byteLength))
-    })
+      source.ready(() => {
+        console.log(' info: source %s online', prettyHash(source.key))
+        console.log(' info: source %s file= %s',
+          prettyHash(source.key), source.uri)
+        console.log(' info: source %s key= %s',
+          prettyHash(source.key), source.key.toString('hex'))
+      })
 
-    source.on('connection', () => {
-      console.log(' info: source %s connection', prettyHash(source.key))
-    })
+      source.audit((err, report) => {
+        console.log(' info: source %s audit=', prettyHash(source.key), report)
+        console.log(' info: source %s byteLength=',
+          prettyHash(source.key), prettyBytes(source.byteLength))
+      })
 
-    source.on('error', onerror)
+      source.on('connection', (socket, info) => {
+        if (info.peer) {
+          console.log(' info: source %s connection %s:%s', prettyHash(source.key), info.peer.host, info.peer.port)
+        } else {
+          console.log(' info: source %s connection', prettyHash(source.key))
+        }
+      })
+
+      source.on('error', onerror)
+    }
   }
 
   if (argv.sink) {
