@@ -6,6 +6,7 @@ const prettyHash = require('pretty-hash')
 const download = require('hypercore-download')
 const Progress = require('progress')
 const minimist = require('minimist')
+const rimraf = require('rimraf')
 const debug = require('debug')('little-box')
 const path = require('path')
 const pump = require('pump')
@@ -71,7 +72,7 @@ async function main() {
   }
 
   if (argv.source) {
-    const source = new Source(ram, argv.key, {
+    const source = new Source(ram, argv.key && argv['secret-key'] ? argv.key : null, {
       encryptionKey: argv['encryption-key'],
       secretKey: argv['secret-key'],
       nonce: argv.nonce,
@@ -102,8 +103,9 @@ async function main() {
   if (argv.sink) {
     const sink = new Sink(path.resolve(argv.sink), argv.key, {
       encryptionKey: argv['encryption-key'],
+      storage: raf,
+      sparse: true,
       nonce: argv.nonce,
-      storage: raf
     })
 
     sink.on('error', onerror)
@@ -117,60 +119,93 @@ async function main() {
 
     })
 
-    sink.once('connection', () => {
-      const now = Date.now()
+    let downloaded = 0
+    let progress = null
+
+    const now = Date.now()
+    const stats = {
+      downloaded: 0,
+      average: 0,
+      blocks: 0,
+    }
+
+    function onclose() {
+      const files = [ 'bitfield', 'signatures', 'tree' ]
+      let pending = 0
+      for (const file of files) {
+        const filename = path.resolve(`${argv.sink}.${file}`)
+        pending++
+        rimraf(filename, () => {
+          if (0 === --pending) {
+            process.nextTick(process.exit)
+          }
+        })
+      }
+    }
+
+    sink.on('sync', () => {
+      if (sink.downloaded() === sink.length) {
+        if (progress) {
+          progress.update(1, stats)
+        }
+
+        console.log(' info: sink %s did finish syncing %s blocks in %s seconds',
+          prettyHash(sink.key), sink.length, ((Date.now() - now) / 1000).toFixed(2))
+        sink.close(onclose)
+      }
+    })
+    sink.on('connection', () => {
+
       console.log(' info: sink %s connection', prettyHash(sink.key))
 
-      let progress = null
-      download(sink, { concurrency: 4, stride: 256 }, () => {
-        console.log(' info: sink %s download complete in %s seconds',
-          prettyHash(sink.key),
-          (Date.now() - now).toPrecision(2))
+      download(sink, { concurrency: Infinity, stride: 1024 }, (err) => {
+        onerror(err)
 
         if (progress) {
-          progress.update(1)
+          progress.update(.99, stats)
+          progress.update(1, stats)
         }
 
-        if (sink.downloaded() === sink.length) {
-          sink.close()
-          process.nextTick(process.exit)
-        }
-      })
+        sink.close(onclose)
 
-      sink.on('sync', () => {
-        if (sink.downloaded() === sink.length) {
-          if (progress) {
-            progress.update(1)
-          }
-
-          console.log(' info: sink %s did finish syncing %s blocks in %s seconds',
-            prettyHash(sink.key), sink.length, (Date.now() - now).toPrecision(2))
-          sink.close()
-          process.nextTick(process.exit)
-        }
+        console.log(' info: sink %s download complete in %s seconds',
+          prettyHash(sink.key),
+          ((Date.now() - now) / 1000).toFixed(2))
       })
 
       sink.update(1, () => {
-        console.log(' info: starting download... [%d blocks remaining]', sink.length - sink.downloaded())
+        if (!progress) {
+          console.log(' info: starting download... [%d blocks remaining]', sink.length - sink.downloaded())
+          progress = new Progress(
+            ' info: downloading [:bar] (:current/:total) :percent ' +
+            '| :etas remaining ' +
+            '| :rate/bps (blocks per second) ' +
+            '| :average avg block size', {
+              complete: '#',
+              incomplete: '-',
+              width: 20,
+              total: sink.length
+            })
+        }
 
-        let downloaded = sink.downloaded()
-        const progress = new Progress(' info: downloading [:bar] :rate/bps (:current/:total) :percent :etas', {
-          complete: '#',
-          incomplete: '-',
-          width: 20,
-          total: sink.length
-        })
+        progress.update(sink.downloaded() / sink.length, stats)
 
-        progress.update(sink.downloaded() / sink.length)
-
-        sink.on('download', (s) => {
-          progress.total = sink.length
-          if (!progress.complete) {
-            progress.tick(sink.downloaded() - downloaded)
-            downloaded = sink.downloaded()
-          }
-        })
+        downloaded = sink.downloaded()
       })
+    })
+
+    sink.on('download', (index, data) => {
+      stats.downloaded += data.length
+      stats.blocks++
+      stats.average = prettyBytes((stats.downloaded / stats.blocks) || 0)
+
+      if (progress) {
+        progress.total = sink.length
+        if (!progress.complete) {
+          progress.tick(sink.downloaded() - downloaded, stats)
+          downloaded = sink.downloaded()
+        }
+      }
     })
   }
 
