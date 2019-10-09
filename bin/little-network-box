@@ -3,7 +3,7 @@
 const { Source, Origin, Sink } = require('../')
 const prettyBytes = require('pretty-bytes')
 const prettyHash = require('pretty-hash')
-const download = require('hypercore-download')
+const download = require('hypercore-block-request')
 const Progress = require('progress')
 const minimist = require('minimist')
 const rimraf = require('rimraf')
