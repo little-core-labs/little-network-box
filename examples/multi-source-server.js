@@ -3,7 +3,7 @@ const path = require('path')
 const ram = require('random-access-memory')
 
 const files = [
-  'https://raw.githubusercontent.com/jwerle/little-box/master/package.json',
+  'https://raw.githubusercontent.com/jwerle/little-network-box/master/package.json',
   __filename,
   path.resolve('video.mp4'),
   path.resolve('copy.mp4'),

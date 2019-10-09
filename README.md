@@ -1,4 +1,4 @@
-little-box
+little-network-box
 ==========
 
 > A little toolkit for distributed applications based on
@@ -7,7 +7,7 @@ little-box
 ## Installation
 
 ```sh
-$ npm install jwerle/little-box # from github for now
+$ npm install jwerle/little-network-box # from github for now
 ```
 
 ## Status
@@ -17,7 +17,7 @@ $ npm install jwerle/little-box # from github for now
 ## Example
 
 ```js
-const { Origin, Sink, storage } = require('little-box')
+const { Origin, Sink, storage } = require('little-network-box')
 const pump = require('pump')
 const path = require('path')
 const ram = require('random-access-memory')
@@ -52,14 +52,14 @@ origin.ready(() => {
 ## API
 
 Below is the documentation for the modules, classes, functions, and
-constants `little-box` exports publically.
+constants `little-network-box` exports publically.
 
 ### `Box(storage, key, options)`
 
 > TBA
 
 ```js
-const { Box, codecs, hooks } = require('little-box')
+const { Box, codecs, hooks } = require('little-network-box')
 const ready = require('hypercore-ready')
 
 const nonce = crypto.randomBytes(24)

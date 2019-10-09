@@ -7,7 +7,7 @@ const download = require('hypercore-download')
 const Progress = require('progress')
 const minimist = require('minimist')
 const rimraf = require('rimraf')
-const debug = require('debug')('little-box')
+const debug = require('debug')('little-network-box')
 const path = require('path')
 const pump = require('pump')
 const ram = require('random-access-memory')
@@ -15,7 +15,7 @@ const raf = require('random-access-file')
 const pkg = require('../package.json')
 const fs = require('fs')
 
-process.title = 'little-box'
+process.title = 'little-network-box'
 
 const { DEBUG = '' } = process.env
 const argv = minimist(process.argv.slice(2), {
@@ -48,7 +48,7 @@ const argv = minimist(process.argv.slice(2), {
   }
 })
 
-const usage = `usage: little-box [-hDV] [options]
+const usage = `usage: ${path.basename(process.argv[1])} [-hDV] [options]
 where options can be:
 
   --origin <origin>       Share an origin

@@ -4,7 +4,8 @@
   "description": "A little toolkit for distributed applications.",
   "main": "index.js",
   "bin": {
-    "little-box": "bin/little-box"
+    "little-network-box": "bin/little-network-box",
+    "little-box": "bin/little-network-box"
   },
   "scripts": {
     "test": "node test/*.js"
