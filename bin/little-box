@@ -143,6 +143,21 @@ async function main() {
       }
     }
 
+    download(sink, { concurrency: Infinity, stride: 1024 }, (err) => {
+      onerror(err)
+
+      if (progress) {
+        progress.update(.99, stats)
+        progress.update(1, stats)
+      }
+
+      sink.close(onclose)
+
+      console.log(' info: sink %s download complete in %s seconds',
+        prettyHash(sink.key),
+        ((Date.now() - now) / 1000).toFixed(2))
+    })
+
     sink.on('sync', () => {
       if (sink.downloaded() === sink.length) {
         if (progress) {
@@ -154,25 +169,12 @@ async function main() {
         sink.close(onclose)
       }
     })
-    sink.on('connection', () => {
 
+    sink.once('connection', () => {
       console.log(' info: sink %s connection', prettyHash(sink.key))
+    })
 
-      download(sink, { concurrency: Infinity, stride: 1024 }, (err) => {
-        onerror(err)
-
-        if (progress) {
-          progress.update(.99, stats)
-          progress.update(1, stats)
-        }
-
-        sink.close(onclose)
-
-        console.log(' info: sink %s download complete in %s seconds',
-          prettyHash(sink.key),
-          ((Date.now() - now) / 1000).toFixed(2))
-      })
-
+    sink.on('connection', () => {
       sink.update(1, () => {
         if (!progress) {
           console.log(' info: starting download... [%d blocks remaining]', sink.length - sink.downloaded())
