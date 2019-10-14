@@ -7,19 +7,13 @@ class Edge extends Node {
 
   /**
    */
-  static defaults() {
-    return extend(true, Node.defaults(), {
+  static defaults(defaults, ...overrides) {
+    return Node.defaults({
       announce: true, lookup: true,
       download: true, upload: true,
       sparse: false,
       live: true,
-    })
-  }
-
-  /**
-  */
-  get isOrigin() {
-    return false
+    }, defaults, ...overrides)
   }
 }
 

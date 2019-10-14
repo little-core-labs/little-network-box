@@ -27,13 +27,13 @@ class Source extends Origin {
 
   /**
    */
-  static defaults() {
-    return extend(true, Origin.defaults(), {
+  static defaults(defaults, ...overrides) {
+    return Origin.defaults({
       encryptionKey: null,
       highWaterMark: 64 * 1024,
       indexing: true,
       nonce: null
-    })
+    } defaults, ...overrides)
   }
 
   /**

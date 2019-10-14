@@ -19,18 +19,12 @@ class Node extends Box {
 
   /**
    */
-  static defaults() {
-    return {
+  static defaults(defaults, ...overrides) {
+    return Box.defaults({
       announce: true, lookup: true,
       download: true, upload: true,
       encrypt: true,
-    }
-  }
-
-  /**
-   */
-  get isOrigin() {
-    return false
+    }, defaults, ...overrides)
   }
 
   /**

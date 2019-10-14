@@ -15,9 +15,9 @@ const bind = (self, f, ...args) => (...rest) => f.apply(self, args.concat(rest))
 
 // exported symbols attached to the `Box` class
 const kBoxHypercore = Symbol('Box.hypercore')
-const kBoxDefaults = Symbol('Box.defaults')
 const kBoxStorage = Symbol('Box.storage')
 const kBoxOptions = Symbol('Box.options')
+const kBoxOrigin = Symbol('box.origin')
 const kBoxCodec = Symbol('Box.codec')
 const kBoxReady = Symbol('Box.ready')
 const kBoxWrite = Symbol('Box.write')
@@ -26,9 +26,10 @@ const kBoxOpen = Symbol('Box.open')
 const kBoxInit = Symbol('Box.init')
 
 /**
- * The `Box` class represents a container for a hypercore feed.
- * This class serves as the base class for the `Edge`, `Origin`, `Reader`
- * `Send`, and `Receive`classes.
+ * The `Box` class represents a container for a Hypercore feed. Extending
+ * classes are provided life cycle callback by implementing various
+ * `Box` symbol methods like `Box.codec`, `Box.storage`, and more to customize
+ * the configuration, initialization, and encryption of the Hypercore feed.
  * @public
  * @class Box
  * @extends EventEmitter
@@ -39,13 +40,15 @@ class Box extends EventEmitter {
    * Default options for the class instance.
    * @public
    * @static
-   * @param {Object} opts
+   * @param {?(Object)} defaults
+   * @param {...?(Object)} overrides
    * @return {Object}
    */
-  static defaults(opts) {
+  static defaults(defaults, ...overrides) {
     return extend(true, {
       storeSecretKey: false,
-    }, opts)
+      live: true,
+    }, defaults, ...overrides)
   }
 
   /**
@@ -137,9 +140,15 @@ class Box extends EventEmitter {
     const { codec = this[kBoxCodec] } = opts
 
     // defaults
-    opts = extend(true, this.constructor.defaults(), opts)
+    if ('function'=== typeof this.constructor.defaults) {
+      opts = extend(true, this.constructor.defaults(), opts)
+    }
 
     this[kBoxOptions](opts)
+
+    if ('origin' in opts && 'boolean' === typeof opts.origin) {
+      this[kBoxOrigin] = opts.origin
+    }
 
     this.feed = null
     this.lock = opts.lock || mutex()
@@ -170,15 +179,24 @@ class Box extends EventEmitter {
     this.storage = this[kBoxStorage](storage, opts)
 
     // hypercore factory
-    this.feed = this[kBoxHypercore](opts)(this.storage, key, opts)
+    if ('function' === typeof opts.hypercore) {
+      this.feed = opts.hypercore(this.storage, key, opts)
+    } else if (opts.feed && 'object' === typeof opts.feed) {
+      this.feed = opts.feed
+    } else {
+      this.feed = this[kBoxHypercore](opts)(this.storage, key, opts)
+    }
 
-    this.feed.on('extension', this.onextension)
-    this.feed.on('download', this.ondownload)
-    this.feed.on('upload', this.onupload)
-    this.feed.on('append', this.onappend)
-    this.feed.on('close', this.onclose)
-    this.feed.on('error', this.onerror)
-    this.feed.on('sync', this.onsync)
+    this.feed.ready(() => {
+      this.feed.on('extension', this.onextension)
+      this.feed.on('download', this.ondownload)
+      this.feed.on('upload', this.onupload)
+      this.feed.on('append', this.onappend)
+      this.feed.on('close', this.onclose)
+      this.feed.on('error', this.onerror)
+      this.feed.on('sync', this.onsync)
+    })
+
     this.ready(() => {
       this.emit('ready')
       this.once('close', bind(this, this[kBoxClose], opts))
@@ -214,16 +232,6 @@ class Box extends EventEmitter {
    */
   get discoveryKey() {
     return this.feed ? this.feed.discoveryKey : null
-  }
-
-  /**
-   * Box instance Hypercore feed noise protocol key pair accessor.
-   * @public
-   * @accessor
-   * @type {?(Object<String, Buffer>)}
-   */
-  get noiseKeyPair() {
-    return this.feed ? this.feed.noiseKeyPair : null
   }
 
   /**
@@ -331,9 +339,13 @@ class Box extends EventEmitter {
    * the initiator is during feed Hypercore replication.
    * @public
    * @accessor
-   * @type {Number}
+   * @type {Boolean}
    */
   get isOrigin() {
+    if (kBoxOrigin in this) {
+      return this[kBoxOrigin]
+    }
+
     return false
   }
 
@@ -472,14 +484,14 @@ class Box extends EventEmitter {
 
   /**
    * Returns a Hypercore feed replication stream.
+   * Calls `feed.replicate(opts)`
    * @public
    * @method
-   * @param {Object|Boolean} opts
-   * @param {?(Mixed)} ...args
+   * @param {?(Object)} opts
    * @return {Stream}
    */
-  replicate(...args) {
-    return this.feed.replicate(...args)
+  replicate(opts) {
+    return this.feed.replicate(opts)
   }
 
   /**
@@ -487,119 +499,155 @@ class Box extends EventEmitter {
    * Calls `feed.update(...args)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {?(Number)} length
+   * @param {Function} callback
    * @return {undefined}
    */
-  update(...args) {
-    this.feed.update(...args)
+  update(length, callback) {
+    this.feed.update(length, callback)
   }
 
   /**
    * Closes Hypercore feed..
-   * Calls `feed.close(...args)`
+   * Calls `feed.close(callback)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {Function} callback
    * @return {undefined}
    */
-  close(...args) {
-    this.feed.close(...args)
+  close(callback) {
+    this.feed.close(callback)
   }
 
   /**
    * Appends log to Hypercore feed.
-   * Calls `feed.append(...args)`
+   * Calls `feed.append(data, callback)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {Mixed} data
+   * @param {Function} callback
    * @return {undefined}
    */
-  append(...args) {
-    this.ready(() => this.feed.append(...args))
+  append(data, callback) {
+    this.ready(() => this.feed.append(data, callback))
   }
 
   /**
    * Calls an extension on the Hypercore feed.
-   * Calls `feed.extension(...args)`
+   * Calls `feed.extension(name, message)`
    * @public
    * @method
-   * @param {...Mixed} ...args
-   * @return {undefined}
+   * @param {String} name
+   * @param {Buffer} message}
+   * @return {Mixed}
    */
-  extension(...args) {
-    this.ready(() => this.feed.extension(...args))
+  extension(name, message) {
+    return this.feed.extension(name, message)
   }
 
   /**
    * Downloads data to Hypercore feed.
-   * Calls `feed.download(...args)`
+   * Calls `feed.download(range, callback)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {...Mixed} range, callback
    * @return {undefined}
    */
-  download(...args) {
-    this.ready(() => this.feed.download(...args))
+  download(range, callback) {
+    this.ready(() => this.feed.download(range, callback))
   }
 
   /**
-   * Undownloads data to Hypercore feed.
-   * Calls `feed.undownload(...args)`
+   * Undownloads data from  Hypercore feed.
+   * Calls `feed.undownload(range)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {Object} range
    * @return {undefined}
    */
-  undownload(...args) {
-    this.ready(() => this.feed.undownload(...args))
+  undownload(range) {
+    this.ready(() => this.feed.undownload(range))
   }
 
   /**
    * Requests head of Hypercore feed.
-   * Calls `feed.head(...args)`
+   * Calls `feed.head(opts, callback)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {?(Object} opts
+   * @param {Function} callback
    * @return {undefined}
    */
-  head(...args) {
-    this.ready(() => this.feed.head(...args))
+  head(opts, callback) {
+    this.ready(() => this.feed.head(opts, callback))
   }
 
   /**
    * Requests buffer at index in Hypercore feed.
-   * Calls `feed.get(...args)`
+   * Calls `feed.get(index, opts, callback)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {Number} index
+   * @param {?(Object} opts
+   * @param {Function} callback
    * @return {undefined}
    */
-  get(...args) {
-    this.ready(() => this.feed.get(...args))
+  get(index, opts, callback) {
+    this.ready(() => this.feed.get(index, opts, callback))
+  }
+
+  /**
+   * Puts buffer at index with proof in Hypercore feed.
+   * Calls `feed.put(index, data, proof, callback)`
+   * @public
+   * @method
+   * @param {Number} index
+   * @param {Buffer} data
+   * @param {?(Object} proof
+   * @param {Function} callback
+   * @return {undefined}
+   */
+  put(index, data, proof, callback) {
+    this.ready(() => this.feed.put(index, data, proof, callback))
   }
 
   /**
    * Requests audit of Hypercore feed.
-   * Calls `feed.audit(...args)`
+   * Calls `feed.audit(callback)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {?(Function)} callback
    * @return {undefined}
    */
-  audit(...args) {
-    this.ready(() => this.feed.audit(...args))
+  audit(callback) {
+    this.ready(() => this.feed.audit(callback))
+  }
+
+  /**
+   * Requests proof at index of Hypercore feed.
+   * Calls `feed.proof(index, opts, callback)`
+   * @public
+   * @method
+   * @param {Number} index
+   * @param {?(Object} opts
+   * @param {?(Function)} callback
+   * @return {undefined}
+   */
+  proof(index, opts, callback) {
+    this.ready(() => this.feed.proof(index, opts, callback))
   }
 
   /**
    * Requests downloaded range of Hypercore feed.
-   * Calls `feed.downloaded(...args)`
+   * Calls `feed.downloaded(start, end)`
    * @public
    * @method
-   * @param {...Mixed} ...args
+   * @param {?(Number)} start
+   * @param {?(Number)} end
    * @return {undefined}
    */
-  downloaded(...args) {
-    return this.feed.downloaded(...args)
+  downloaded(start, end) {
+    return this.feed.downloaded(start, end)
   }
 
   /**
@@ -610,8 +658,8 @@ class Box extends EventEmitter {
    * @param {Object} opts
    * @return {?(Stream)}
    */
-  createReadStream(...args) {
-    return this.feed.createReadStream(...args)
+  createReadStream(opts) {
+    return this.feed.createReadStream(opts)
   }
 
   /**
@@ -619,11 +667,10 @@ class Box extends EventEmitter {
    * Calls `feed.createReadStream(opts)`
    * @public
    * @method
-   * @param {Object} opts
    * @return {?(Stream)}
    */
-  createWriteStream(...args) {
-    return this.feed.createWriteStream(...args)
+  createWriteStream() {
+    return this.feed.createWriteStream()
   }
 
   /**
@@ -655,8 +702,8 @@ class Box extends EventEmitter {
    * @private
    * @emits append
    */
-  onappend(...args) {
-    this.emit('append', ...args)
+  onappend() {
+    this.emit('append')
   }
 
   /**
@@ -665,28 +712,32 @@ class Box extends EventEmitter {
    * @private
    * @emits extension
    */
-  onextension(...args) {
-    this.emit('extension', ...args)
+  onextension(name, message, peer) {
+    this.emit('extension', name, message, peer)
   }
 
   /**
    * Level 1 `download` event handler that emits a 'download'
    * event.
    * @private
+   * @param {Number} index
+   * @param {Buffer} data
    * @emits download
    */
-  ondownload(...args) {
-    this.emit('download', ...args)
+  ondownload(index, data) {
+    this.emit('download', index, data)
   }
 
   /**
    * Level 1 `upload` event handler that emits a 'upload'
    * event.
    * @private
+   * @param {Number} index
+   * @param {Buffer} data
    * @emits upload
    */
-  onupload(...args) {
-    this.emit('upload', ...args)
+  onupload(index, data) {
+    this.emit('upload', index, data)
   }
 
   /**
@@ -704,6 +755,11 @@ class Box extends EventEmitter {
    * all hooks on the instance.
    * event.
    * @private
+   * @param {Number} index
+   * @param {Buffer} data
+   * @param {?(Object)} peer
+   * @param {Function} done
+   * @emits write
    */
   onwrite(index, data, peer, done) {
     const { feed, hooks } = this
@@ -714,6 +770,11 @@ class Box extends EventEmitter {
         hook.call(feed, index, data, peer, next)
       })
     }
+
+    batch.push((next) => {
+      this.emit('write', index, data, peer)
+      next()
+    })
 
     batch.end(done)
   }
@@ -784,20 +845,20 @@ Box.ready = kBoxReady
 Box.storage = kBoxStorage
 
 /**
+ * The `Box.origin` symbol for the origin (`isOrigin`) boolean predicate
+ * @public
+ * @static
+ * @type {Symbol}
+ */
+Box.origin = kBoxOrigin
+
+/**
  * The `Box.hypercore` symbol for the hypercore factory method.
  * @public
  * @static
  * @type {Symbol}
  */
 Box.hypercore = kBoxHypercore
-
-/**
- * The `Box.defaults` symbol for the `defaults()` method.
- * @public
- * @static
- * @type {Symbol}
- */
-Box.defaults = kBoxDefaults
 
 /**
  * Factory for creating `Box` instances.

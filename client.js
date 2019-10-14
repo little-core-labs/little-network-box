@@ -4,6 +4,7 @@ const toBuffer = require('to-buffer')
 const protocol = require('rpc-protocol')
 const crypto = require('hypercore-crypto')
 const assert = require('assert')
+const extend = require('extend')
 
 // quick util
 const bind = (self, f) => (...args) => f.call(self, ...args)
@@ -14,13 +15,13 @@ class Client extends EventEmitter {
 
   /**
    */
-  static defaults() {
-    return {
+  static defaults(defaults, ...overrides) {
+    return extend(true, {
       port: 54809,
       lookup: true,
       announce: false,
       ephemeral: true,
-    }
+    }, defaults, ...overrides)
   }
 
   /**

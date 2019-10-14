@@ -10,21 +10,15 @@ class Sink extends Node {
 
   /**
    */
-  static defaults() {
-    return extend(true, Node.defaults(), {
+  static defaults(defaults, ...overrides) {
+    return Node.defaults({
       announce: true, lookup: true,
       download: true, upload: true,
       ephemeral: true,
       overwrite: true,
       //sparse: true,
       encryptionKey: null, nonce: null,
-    })
-  }
-
-  /**
-   */
-  get isOrigin() {
-    return false
+    }, defaults, ...overrides)
   }
 
   /**

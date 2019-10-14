@@ -7,17 +7,12 @@ class Origin extends Node {
 
   /**
    */
-  static defaults() {
-    return extend(true, Node.defaults(), {
+  static defaults(defaults, ...overrides) {
+    return Node.defaults({
       announce: true, lookup: true,
       download: false, upload: true,
-    })
-  }
-
-  /**
-   */
-  get isOrigin() {
-    return true
+      origin: true
+    }, defaults, ...overrides)
   }
 }
 

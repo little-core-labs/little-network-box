@@ -7,18 +7,12 @@ class Reader extends Node {
 
   /**
    */
-  static defaults() {
-    return extend(true, Node.defaults(), {
+  static defaults(defaults, ...overrides) {
+    return Node.defaults({
       announce: false, lookup: true,
       download: true, upload: false,
       //sparse: true,
-    })
-  }
-
-  /**
-   */
-  get isOrigin() {
-    return false
+    }, defaults, ...overrides)
   }
 }
 
