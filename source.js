@@ -33,7 +33,7 @@ class Source extends Origin {
       highWaterMark: 64 * 1024,
       indexing: true,
       nonce: null
-    } defaults, ...overrides)
+    }, defaults, ...overrides)
   }
 
   /**
