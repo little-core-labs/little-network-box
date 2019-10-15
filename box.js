@@ -227,7 +227,7 @@ class Box extends EventEmitter {
    * @type {?(Buffer)}
    */
   get key() {
-    return this.feed.key
+    return this.feed && this.feed.key
   }
 
   /**
@@ -237,7 +237,7 @@ class Box extends EventEmitter {
    * @type {?(Buffer)}
    */
   get secretKey() {
-    return this.feed.secretKey
+    return this.feed && this.feed.secretKey
   }
 
   /**
@@ -247,7 +247,7 @@ class Box extends EventEmitter {
    * @type {?(Buffer)}
    */
   get discoveryKey() {
-    return this.feed.discoveryKey
+    return this.feed && this.feed.discoveryKey
   }
 
   /**
@@ -257,7 +257,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get stats() {
-    return this.feed.stats
+    return this.feed && this.feed.stats
   }
 
   /**
@@ -267,7 +267,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get extensions() {
-    return this.feed.extensions
+    return this.feed && this.feed.extensions
   }
 
   /**
@@ -277,7 +277,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get live() {
-    return this.feed.live
+    return this.feed && this.feed.live
   }
 
   /**
@@ -287,7 +287,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get sparse() {
-    return this.feed.sparse
+    return this.feed && this.feed.sparse
   }
 
   /**
@@ -297,7 +297,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get readable() {
-    return this.feed.readable
+    return this.feed && this.feed.readable
   }
 
   /**
@@ -307,7 +307,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get writable() {
-    return this.feed.writable
+    return this.feed && this.feed.writable
   }
 
   /**
@@ -317,7 +317,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get opened() {
-    return this.feed.opened
+    return this.feed && this.feed.opened
   }
 
   /**
@@ -327,7 +327,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get closed() {
-    return this.feed.closed
+    return this.feed && this.feed.closed
   }
 
   /**
@@ -337,7 +337,7 @@ class Box extends EventEmitter {
    * @type {Number}
    */
   get length() {
-    return this.feed.length
+    return this.feed && this.feed.length
   }
 
   /**
@@ -347,7 +347,7 @@ class Box extends EventEmitter {
    * @type {Number}
    */
   get byteLength() {
-    return this.feed.byteLength
+    return this.feed && this.feed.byteLength
   }
 
   /**
