@@ -279,17 +279,7 @@ test('Box#[Box.init](opts)', (t) => {
 test('Box#[Box.codec](opts)', (t) => {
   class ExtendedBox extends Box {
     [Box.codec](opts) {
-      return { encode, decode }
-      function encode(value, buffer, offset) {
-        const enc = Buffer.from(JSON.stringify(value))
-        buffer = buffer || Buffer.alloc(enc.length)
-        enc.copy(buffer, offset)
-        return buffer
-      }
-
-      function decode(value, offset) {
-        return JSON.parse(String(value.slice(offset)))
-      }
+      return require('buffer-json-encoding')
     }
   }
 
