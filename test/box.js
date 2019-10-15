@@ -1,3 +1,4 @@
+const passthrough = require('passthrough-encoding')
 const hypertrie = require('hypertrie')
 const hypercore = require('hypercore')
 const collect = require('collect-stream')
@@ -23,38 +24,49 @@ test('Box(storage, key, opts)', (t) => {
   t.throws(() => new Box(() => void 0))
 
   {
-    const box = new Box(ram)
+    t.ok(new Box(ram))
   }
 
   {
     const { publicKey, secretKey } = crypto.keyPair()
-    const box = new Box(ram, publicKey, { secretKey })
+    t.ok(new Box(ram, publicKey, { secretKey }))
   }
 
   {
     const { publicKey } = crypto.keyPair()
-    const box = new Box(ram, publicKey)
+    t.ok(new Box(ram, publicKey))
   }
 
   {
     const { publicKey, secretKey } = crypto.keyPair()
-    const box = new Box(ram,  { key: publicKey, secretKey })
+    t.ok(new Box(ram,  { key: publicKey, secretKey }))
   }
 
   {
     const { publicKey, secretKey } = crypto.keyPair()
-    const box = new Box(ram,  publicKey.toString('hex'), {
+    t.ok(new Box(ram,  publicKey.toString('hex'), {
       secretKey: secretKey.toString('hex')
-    })
+    }))
   }
 
   {
-    new Box(ram, { origin: true })
-    new Box(ram, { lock: mutex() })
-    new Box(ram, { hooks: null })
-    new Box(ram, { hook: () => void 0 })
-    new Box(ram, { hypercore: hypercore })
-    new Box(null, { feed: hypercore(ram) })
+    t.ok(new Box(ram, { origin: true }))
+    t.ok(new Box(ram, { lock: mutex() }))
+    t.ok(new Box(ram, { hooks: [] }))
+    t.ok(new Box(ram, { hooks: null }))
+    t.ok(new Box(ram, { hook: () => void 0 }))
+    t.ok(new Box(ram, { hypercore: hypercore }))
+    t.ok(new Box(null, { feed: hypercore(ram) }))
+    t.ok(new Box(ram, { codec: passthrough }))
+    t.ok(new Box(ram, { valueEncoding: passthrough }))
+
+    class ExtendedBox extends Box {
+      [Box.init](opts) {
+        this[Box.codec] = null
+      }
+    }
+
+    t.ok(new ExtendedBox(ram))
   }
 
   t.end()
@@ -64,6 +76,12 @@ test('Box.defaults(defaults, opts)', (t) => {
   t.ok('object' === typeof Box.defaults())
   t.equal(false, Box.defaults().storeSecretKey)
   t.equal(true, Box.defaults({ storeSecretKey: true }).storeSecretKey)
+
+  class ExtendedBox extends Box { }
+  ExtendedBox.defaults = null
+
+  t.ok(new ExtendedBox(ram))
+
   t.end()
 })
 
@@ -629,17 +647,18 @@ test('Box#onerror(err)', (t) => {
   const box = new Box(ram)
   const { onerror } = box
   box.onerror = (err) => {
-    t.ok(err)
-    t.equal('oops', err.message)
-    t.end()
+    t.pass('error')
     return onerror(err)
   }
 
   box.on('error', (err) => {
-    t.pass('error')
+    t.ok(err)
+    t.equal('oops', err.message)
+    t.end()
   })
 
   box.ready(() => {
+    box.onerror()
     box.onerror(new Error('oops'))
   })
 })

@@ -1,13 +1,13 @@
 little-network-box
-==========
+==================
 
 > A little toolkit for distributed applications based on
-> [Hypercore][hypercore].
+> [Hypercore][hypercore] and [Hyperswarm][hyperswarm]
 
 ## Installation
 
 ```sh
-$ npm install jwerle/little-network-box # from github for now
+$ npm install little-network-box # from github for now
 ```
 
 ## Status
@@ -54,102 +54,163 @@ origin.ready(() => {
 Below is the documentation for the modules, classes, functions, and
 constants `little-network-box` exports publically.
 
-### `Box(storage, key, options)`
+### `const box = new Box(storage, key, options)`
 
-> TBA
+The `Box` class represents a container for a Hypercore feed. Extending
+classes are provided life cycle callback by implementing various
+`Box` symbol methods like `Box.codec`, `Box.storage`, and more to customize
+the configuration, initialization, and encryption of the Hypercore feed.
+
+#### Usage
 
 ```js
-const { Box, codecs, hooks } = require('little-network-box')
-const ready = require('hypercore-ready')
+const box = new Box(storage[, key[, options]])
+```
 
-const nonce = crypto.randomBytes(24)
-const box = new Box('./path/to/box', {
-  nonce, codec: codecs.xsalsa20
+Where `storage` is a [random-access-storage][random-access-storage]
+factory function, `key` is an optional [Hypercore public
+keey](https://github.com/mafintosh/hypercore/#feedkey), and `options` is
+an object that is passed directly to the [Hypercore
+constructor](https://github.com/mafintosh/hypercore/#var-feed--hypercorestorage-key-options)
+and made available to various Symbol methods like `Box.options`,
+`Box.init`, and more.
+
+#### `box.key`
+
+Read only accessor for the Hypercore feed's public key.
+
+#### `box.secretKey`
+
+Read only accessor for the Hypercore feed's secret key.
+
+#### `box.discoveryKey`
+
+Read only accessor for the Hypercore feed's discovery key.
+
+#### `box.stats`
+
+Read only accessor for the Hypercore feed's stats object.
+
+#### `box.extensions`
+
+Read only accessor for the Hypercore feed's extensions array.
+
+#### `box.live`
+
+Read only accessor for the Hypercore feeds' live state.
+
+#### `box.sparse`
+
+Read only accessor for the Hypercore feeds' sparse state.
+
+#### `box.readable`
+
+Read only accessor for the Hypercore feeds' readable state.
+
+#### `box.writable`
+
+Read only accessor for the Hypercore feeds' writable state.
+
+#### `box.opened`
+
+Read only accessor for the Hypercore feeds' opened state.
+
+#### `box.closed`
+
+Read only accessor for the Hypercore feeds' closed state.
+
+#### `box.length`
+
+Read only accessor for the Hypercore feeds' length.
+
+#### `box.byteLength`
+
+Read only accessor for the Hypercore feeds' byte length.
+
+#### `box.origin`
+
+Read only accessor for the Box's origin state.
+
+### `const options = Box.defaults(defaults, ...overrides)`
+
+Creates an options object that can be passed to the `Box` constructor.
+
+##### Usage
+
+```js
+const options = Box.defaults(defaults, ...overrides)
+```
+
+Where default options described by the `Box` class can be overloaded by a
+given `defaults` object and subsequently with any number of override
+objects passed in as _rest arguments_ `...overrides`.
+
+### `Box.options`
+
+Classes who extend the `Box` class who are interested in extending
+constructor options should implement this Symbol method.
+
+```js
+class ExtendedBox extends Box {
+  [Box.options](options) {
+    // modify `options`
+  }
+}
+```
+
+### `Box.init`
+
+Classes who extend the `Box` class who are interested in initializing objects
+with the `options` passed into the constructor should implement this
+Symbol method.
+
+```js
+const hyperswarm require('hyperswarm')
+const ram = require('random-access-memory'
+
+class ExtendedBox extends Box {
+  [Box.init](options) {
+    this.swarm = hyperswarm(options.swarm)
+  }
+}
+
+const box = new ExtendedBox(ram, {
+  swarm: { ephemeral: false }
 })
 
 box.ready(() => {
-  const vault = new Box('./path/to/secure/vault', box.key)
-  const message = Buffer.from('hello')
-  const unboxed = new Box('./path/to/unboxed', {
-    nonce, hooks: [ hooks.xsalsa20 ]
-  })
-
-  box.append(message, () => {
-    box.head(console.log) // hello
-  })
-
-  box.update(() => {
-    ready(vault, unbox, () => {
-      replicate(box, vault, () => {
-        vault.head(console.log) // <ciphertext>
-        replicate(vault, unbox, () => {
-          unbox.head(console.log) // hello
-        })
-      })
-    })
-  })
+  box.swarm.join(box.discoveryKey)
 })
 ```
 
-### `Node(storage, key, options)`
+### `Box.codec`
 
-> TBA
+Classes who extend the `Box` class who are interested in providing a
+codec for the Hypercore's `valueEncoding` property should implement this
+Symbol method.
 
-### `Edge(storage, key, options)`
+```js
+const encoding = require('buffer-json-encoding')
 
-> TBA
+class ExtendedBox extends Box {
+  [Box.codec](opts) {
+    return encoding
+  }
+}
+```
 
-### `Origin(storage, key, options)`
-
-> TBA
-
-### `Reader(storage, key, options)`
-
-> TBA
-
-### `Receive(storage, key, options)`
-
-> TBA
-
-### `Send(storage, key, options)`
-
-> TBA
-
-### `Network(opts)`
-
-> TBA
-
-### `replicate(...boxes[, options[, callback]])`
-
-> TBA
-
-### `codecs`
-
-> TBA
-
-#### `codecs.xsalsa20`
-
-> TBA
-
-### `hooks`
-
-> TBA
-
-#### `hooks.xsalsa20`
-
-> TBA
-
-### `storage`
-
-> TBA
-
-#### `storage.sink`
-
-> TBA
-
+### `Box.open`
+### `Box.close`
+### `Box.write`
+### `Box.ready`
+### `Box.storage`
+### `Box.origin`
+### `Box.hypercore`
 
 ## License
 
 MIT
 
 [hypercore]: https://github.com/mafintosh/hypercore
+[hyperswarm]: https://github.com/hyperswarm/hyperswarm
+[random-access-storage]: https://github.com/random-access-storage/random-access-storage

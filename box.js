@@ -72,6 +72,12 @@ class Box extends EventEmitter {
     this.onwrite = bind(this, this.onwrite)
     this.onsync = bind(this, this.onsync)
 
+    if (storage && 'object' === typeof storage) {
+      opts = storage
+      key = null
+      storage = null
+    }
+
     if (!opts && 'string' !== typeof key && false === Buffer.isBuffer(key)) {
       opts = key
       key = null
@@ -135,10 +141,6 @@ class Box extends EventEmitter {
     opts.secretKey = secretKey
     opts.discoveryKey = crypto.discoveryKey(opts.key)
 
-    // use the `Box.codec` symbol from the instance if
-    // a codec is not given by default
-    const { codec = this[kBoxCodec] } = opts
-
     // defaults
     if ('function'=== typeof this.constructor.defaults) {
       opts = extend(true, this.constructor.defaults(), opts)
@@ -171,12 +173,26 @@ class Box extends EventEmitter {
     // `Box.init` symbol
     this[kBoxInit](opts)
 
-    if (!opts.valueEncoding && 'function' === typeof codec) {
-      opts.valueEncoding = codec.call(this, opts)
+    // use the `Box.codec` symbol from the instance if
+    // a codec is not given by default
+    const { codec = this[kBoxCodec] } = opts
+
+    if (!opts.valueEncoding) {
+      if ('function' === typeof codec) {
+        opts.valueEncoding = codec.call(this, opts)
+      } else if (codec && 'object' === typeof codec) {
+        opts.valueEncoding = codec
+      } else {
+        delete opts.valueEncoding
+      }
     }
 
-    // storage factory
-    this.storage = this[kBoxStorage](storage, opts)
+    if (null === storage) {
+      this.storage = null
+    } else {
+      // storage factory
+      this.storage = this[kBoxStorage](storage, opts)
+    }
 
     // hypercore factory
     if ('function' === typeof opts.hypercore) {
@@ -211,7 +227,7 @@ class Box extends EventEmitter {
    * @type {?(Buffer)}
    */
   get key() {
-    return this.feed ? this.feed.key : null
+    return this.feed.key
   }
 
   /**
@@ -221,7 +237,7 @@ class Box extends EventEmitter {
    * @type {?(Buffer)}
    */
   get secretKey() {
-    return this.feed ? this.feed.secretKey : null
+    return this.feed.secretKey
   }
 
   /**
@@ -231,7 +247,7 @@ class Box extends EventEmitter {
    * @type {?(Buffer)}
    */
   get discoveryKey() {
-    return this.feed ? this.feed.discoveryKey : null
+    return this.feed.discoveryKey
   }
 
   /**
@@ -241,7 +257,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get stats() {
-    return this.feed ? this.feed.stats : null
+    return this.feed.stats
   }
 
   /**
@@ -251,7 +267,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get extensions() {
-    return this.feed ? this.feed.extensions : null
+    return this.feed.extensions
   }
 
   /**
@@ -261,7 +277,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get live() {
-    return this.feed ? this.feed.live : null
+    return this.feed.live
   }
 
   /**
@@ -271,7 +287,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get sparse() {
-    return this.feed ? this.feed.sparse : null
+    return this.feed.sparse
   }
 
   /**
@@ -281,7 +297,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get readable() {
-    return this.feed ? this.feed.readable : null
+    return this.feed.readable
   }
 
   /**
@@ -291,7 +307,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get writable() {
-    return this.feed ? this.feed.writable : null
+    return this.feed.writable
   }
 
   /**
@@ -301,7 +317,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get opened() {
-    return this.feed ? this.feed.opened : null
+    return this.feed.opened
   }
 
   /**
@@ -311,7 +327,7 @@ class Box extends EventEmitter {
    * @type {?(Object)}
    */
   get closed() {
-    return this.feed ? this.feed.closed : null
+    return this.feed.closed
   }
 
   /**
@@ -321,7 +337,7 @@ class Box extends EventEmitter {
    * @type {Number}
    */
   get length() {
-    return this.feed ? this.feed.length : 0
+    return this.feed.length
   }
 
   /**
@@ -331,7 +347,7 @@ class Box extends EventEmitter {
    * @type {Number}
    */
   get byteLength() {
-    return this.feed ? this.feed.byteLength : 0
+    return this.feed.byteLength
   }
 
   /**
