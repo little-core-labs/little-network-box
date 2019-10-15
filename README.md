@@ -166,7 +166,7 @@ Symbol method.
 
 ```js
 const hyperswarm require('hyperswarm')
-const ram = require('random-access-memory'
+const ram = require('random-access-memory')
 
 class ExtendedBox extends Box {
   [Box.init](options) {
@@ -191,21 +191,240 @@ Symbol method.
 
 ```js
 const encoding = require('buffer-json-encoding')
+const ram = require('random-access-memory')
 
 class ExtendedBox extends Box {
   [Box.codec](opts) {
     return encoding
   }
 }
+
+const box = new ExtendedBox(ram)
+
+box.ready(() => {
+  box.append({ hello: 'world' }, (err) => {
+    box.head(console.log) // { hello: 'world' }
+  })
+})
 ```
 
 ### `Box.open`
+
+Classes who extend the `Box` class who are interested in opening
+resources when the instance is "opening" should implement this Symbol
+method.
+
+```js
+class ExtendedBox extends Box {
+  [Box.open](opts) {
+    this.socket = net.connect(opts)
+    this.socket.on('connect', () => this.emit('connect', this.socket)
+  }
+}
+
+const box = new ExtendedBox(ram)
+box.on('connect', (socket) => {
+  // handle socket connection
+})
+```
+
 ### `Box.close`
+
+Classes who extend the `Box` class who are interested in closing
+resources when the instance is "closing" should implement this Symbol
+method.
+
+```js
+class ExtendedBox extends Box {
+  [Box.open](opts) {
+    this.socket = net.connect(opts)
+    this.socket.on('connect', () => this.emit('connect', this.socket)
+  }
+
+  [Box.close](opts) {
+    if (this.socket) {
+      this.socket.destroy()
+      this.socket = null
+    }
+  }
+}
+
+const box = new ExtendedBox(ram)
+box.on('connect', (socket) => {
+  // handle socket connection then close
+  box.close()
+})
+```
+
 ### `Box.write`
+
+Classes who extend the `Box` class who are interested in modifying data
+as after verification but before being written to storage should
+implement this Symbol method.
+
+```js
+const replicate = require('little-network-box/replicate')
+const encoding = require('xsalsa20-encoding')
+const xsalsa20 = require('xsalsa20')
+const crypto = require('crypto')
+
+const nonce = crypto.randomBytes(24)
+
+// encrypts plaintext into ciphertext before writing
+// to storage
+class EncryptedBox extends Box {
+  [Box.codec](opts) {
+    return encoding(nonce, opts.key)
+  }
+}
+
+// decrypts data before writing to storage so
+// `get()`, `head()`, etc return plaintext
+class DecryptedBox extends Box {
+  [Box.write](index, data, peer, done) {
+    try {
+      const xor = xsalsa20(nonce, this.key)
+      xor.update(data, data)
+      xor.finalize()
+      done(null)
+    } catch (err) {
+      done(err)
+    }
+  }
+}
+
+const encrypted = new EncryptedBox(ram)
+encrypted.ready(() => {
+  const decrypted = new DecryptedBox(ram, encrypted.key)
+  decrypted.ready(() => {
+    replicate(encrypted, decrypted, (err) => {
+      decrypted.head(console.log) // hello world
+    })
+  })
+})
+```
+
 ### `Box.ready`
+
+Classes who extend the `Box` class who are interested in adding work to
+the "ready queue" should extend this Symbol method.
+
+```js
+// waits for super to be ready, then waits 5000ms before calling
+// `done()` signaling that the instance is ready.
+class DelayedReadyBox extends Box {
+  [Box.ready](opts, done) {
+    super[Box.ready](opts, (err) => {
+        setTimeout(done, 5000)
+    })
+  }
+}
+
+const box = new DelayedReadyBox(ram)
+box.ready(() => {
+  // called after 5000ms
+})
+```
+
 ### `Box.storage`
+
+Classes who extend the `Box` class who are interested in providing a
+custom [random-access-storage][random-access-storage] interface based on
+constructor input should implement this Symbol method.
+
+```js
+const pump = require('pump')
+const ram = require('random-access-memory')
+const raf = require('random-access-file')
+const fs = require('fs')
+
+// indexes a file by passing the contents of the file,
+// block by block, (fs.createReadStream()) through the hypercore
+// feed generating a merkle tree and signed roots.
+class IndexedBox extends Box {
+  [Box.options](opts) {
+    opts.indexing = true
+  }
+
+  [Box.init](opts) {
+    this.filename = opts.filename
+  }
+
+  // treats the file as the data storage
+  [Box.storage](storage, opts) {
+    return (filename) => {
+      if ('data' === filename) {
+        return raf(this.filename)
+      } else {
+        return ram()
+      }
+    }
+  }
+
+  [Box.ready](opts, done) {
+    super[Box.ready](opts, (err) => {
+      const reader = fs.createReadStream(this.filename)
+      const writer = this.createWriteStream()
+      pump(reader, writer, done)
+    })
+  }
+}
+
+const indexed = new IndexedBox(ram, { filename: './video.mp4' })
+indexed.ready(() => {
+  indexed.audit(console.log) // should report 0 invalid
+})
+```
+
 ### `Box.origin`
+
+Classes who extend the `Box` class who are interested in affecting the
+value of the `box.isOrigin` predicate accessor should implement this
+Symbol method.
+
+```js
+const ram = require('random-access-memory')
+
+class Origin extends Box {
+  get [Box.origin]() {
+    return true
+  }
+}
+
+const origin = new Origin(ram)
+console.log(origin.isOrigin) // true
+```
+
 ### `Box.hypercore`
+
+Classes who extend the `Box` class who are interested in providing a
+[hypercore][hypercore] factory should implement this Symbol method.
+
+```js
+const hypertrie = require('hypertrie')
+const xsalsa20 = require('xsalsa20-encoding')
+const crypto = require('crypto')
+
+class EncryptedOriginTrieBox extends Box {
+  [Box.hypercore](opts) {
+    return hypertrie
+  }
+
+  [Box.codec](opts) {
+    return xsalsa20(opts.nonce, opts.key)
+  }
+
+  get [Box.origin]() {
+    return true
+  }
+}
+
+const nonce = crypto.randomBytes(24)
+const trie = new EncryptedOriginTrieBox(ram, { nonce })
+trie.put('hello', 'world', (err) => {
+  trie.get('hello', console.log) // { ..., key: 'hello', value: 'world' }
+})
+```
 
 ## License
 
