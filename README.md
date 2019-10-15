@@ -545,7 +545,7 @@ peers.
 
 #### Usage
 
-```
+```js
 const origin = new Origin(storage[, key[, options]])
 ```
 
@@ -583,7 +583,7 @@ peers.
 
 #### Usage
 
-```
+```js
 const reader = new Reader(storage[, key[, options]])
 ```
 
@@ -622,7 +622,7 @@ is given.
 
 #### Usage
 
-```
+```js
 const sink = new Sink(storage[, key[, options]])
 ```
 
