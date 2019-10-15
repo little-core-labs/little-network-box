@@ -14,20 +14,39 @@ const bind = (self, f) => (...args) => f.call(self, ...args)
 const kNodeConnection = Symbol('Node.connection')
 
 /**
-*/
+ * The `Node` class represents an extended `Box` class that
+ * creates and joins a network swarm replicating with peers
+ * that connect to it. Storage is encrypted using the XSalsa20
+ * cipher encoding.
+ * @public
+ * @class Node
+ * @extends Box
+ */
 class Node extends Box {
 
   /**
+   * Default options for a `Node` class instance.
+   * @public
+   * @static
+   * @param {?(Object)} defaults
+   * @param {...?(Object)} overrides
+   * @return {Object}
    */
   static defaults(defaults, ...overrides) {
     return Box.defaults({
       announce: true, lookup: true,
       download: true, upload: true,
+      ephemeral: true,
       encrypt: true,
     }, defaults, ...overrides)
   }
 
   /**
+   * `Box.options` handler to ensure `nonce`, `discoveryKey`,
+   * and `encryptionKey` are set.
+   * @private
+   * @method
+   * @param {Object} opts
    */
   [Box.options](opts) {
     super[Box.options](opts)
@@ -47,6 +66,10 @@ class Node extends Box {
   }
 
   /**
+   * `Box.init` handler to initialize `Node` instance.
+   * @private
+   * @method
+   * @param {Object} opts
    */
   [Box.init](opts) {
     super[Box.init](opts)
@@ -62,6 +85,11 @@ class Node extends Box {
   }
 
   /**
+   * `Box.codec` handler to return abstract encoding interface.
+   * @private
+   * @method
+   * @param {Object} opts
+   * @return {?(Object)}
    */
   [Box.codec](opts) {
     const { encryptionKey, nonce } = opts
@@ -72,6 +100,12 @@ class Node extends Box {
     }
   }
 
+  /**
+   * `Box.close` handler to destroy `Node` resources (network, etc).
+   * @private
+   * @method
+   * @param {Object} opts
+   */
   [Box.close](opts) {
     if (this.network) {
       this.network.removeListener('connection', this.onconnection)
@@ -82,12 +116,15 @@ class Node extends Box {
   }
 
   /**
-  */
+   * `Box.ready` handler to signal ready state for `Node` instance.
+   * @private
+   * @method
+   * @param {Object} opts
+   * @param {Function} done
+   */
   [Box.ready](opts, done) {
     super[Box.ready](opts, (err) => {
-      if (err) {
-        done(err)
-      } else if (this.network) {
+      if (this.network) {
         const { announce, lookup } = opts
         this.network.join(this.discoveryKey, { announce, lookup })
         this.network.ready(done)
@@ -98,6 +135,17 @@ class Node extends Box {
   }
 
   /**
+   * Abstract method called when a `Node` instance receives
+   * a connection. Returning `false` prevents the default connection
+   * handler from executing allow extending classes to implement custom
+   * connection logic.
+   * @protected
+   * @abstract
+   * @method
+   * @param {Duplex} stream
+   * @param {Object} info
+   * @param {Duplex} socket
+   * @return {Boolean}
    */
   [kNodeConnection](stream, info, socket) {
     void stream, info, socket
@@ -105,6 +153,12 @@ class Node extends Box {
   }
 
   /**
+   * Network connection handler.
+   * @private
+   * @method
+   * @param {Duplex} stream
+   * @param {Object} info
+   * @param {Duplex} socket
    */
   onconnection(stream, info, socket) {
     this.emit('connection', stream, info, socket)
@@ -114,30 +168,39 @@ class Node extends Box {
       return
     }
 
-    const { isOrigin, discoveryKey } = this
-    const topic = info.peer && info.peer.topic
     const { download, upload, encrypt, live } = this
+    const { isOrigin, discoveryKey } = this
+    const initiator = info.client
+    const topic = info.peer && info.peer.topic
 
-    if (Buffer.isBuffer(topic) && 0 === Buffer.compare(topic, discoveryKey)) {
-      this.replicate({ stream, initiator: info.client, ack: true, live: true })
-    } else if (!topic && isOrigin) {
-      this.replicate({ stream, initiator: info.client, ack: true, live: true })
+    if (
+      (!topic & isOrigin) ||
+      Buffer.isBuffer(topic) && 0 === Buffer.compare(topic, discoveryKey)
+    ) {
+      this.replicate({ ack: true, live, stream, initiator, upload, download })
     }
   }
 }
 
 /**
-*/
+ * The `Node.connection` symbol for overloading connections handlers.
+ * @public
+ * @static
+ * @type {Symbol}
+ */
 Node.connection = kNodeConnection
 
 /**
-*/
+ * Factory for creating `Node` instances.
+ * @public
+ */
 function createNode(...args) {
   return new Node(...args)
 }
 
 /**
-*/
+ * Module exports.
+ */
 module.exports = Object.assign(createNode, {
   Node,
 })

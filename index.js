@@ -14,8 +14,15 @@ const storage = require('./storage')
 const codecs = require('./codecs')
 const hooks = require('./hooks')
 
+/**
+ * The top level module exports for the 'little-network-box' module.
+ * @public
+ * @namespace little-network-box
+ * @type {Object}
+ */
 module.exports = Object.assign(factory(Box), {
 
+  // factories
   network: factory(Network),
   receive: factory(Receive),
   client: factory(Client),
@@ -28,11 +35,13 @@ module.exports = Object.assign(factory(Box), {
   edge: factory(Edge),
   box: factory(Box),
 
+  // utilities
   replicate,
   storage,
   codecs,
   hooks,
 
+  // classes
   Receive,
   Client,
   Reader,

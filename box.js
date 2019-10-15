@@ -37,7 +37,7 @@ const kBoxInit = Symbol('Box.init')
 class Box extends EventEmitter {
 
   /**
-   * Default options for the class instance.
+   * Default options for a Box class instance.
    * @public
    * @static
    * @param {?(Object)} defaults
@@ -888,5 +888,5 @@ function createBox(...args) {
  * Module exports.
  */
 module.exports = Object.assign(createBox, {
-  Box
+  Box,
 })

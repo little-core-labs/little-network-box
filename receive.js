@@ -9,11 +9,11 @@ const pump = require('pump')
 const tar = require('tar-stream')
 
 /**
- * The `ReceiveReader` class TBD
- * @class ReceiveReader
+ * The `Receive` class TBD
+ * @class Receive
  * @extends Reader
  */
-class ReceiveReader extends Reader {
+class Receive extends Reader {
 
   /**
    */
@@ -25,14 +25,6 @@ class ReceiveReader extends Reader {
       return codecs.xsalsa20poly1305({ nonce, encryptionKey })
     }
   }
-}
-
-/**
- * The `Receive` class TBD
- * @class Receive
- * @extends ReceiveReader
- */
-class Receive extends ReceiveReader {
 
   /**
    */

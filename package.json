@@ -9,7 +9,7 @@
   },
   "scripts": {
     "coverage": "nyc npm run test",
-    "test": "node test/*.js"
+    "test": "tape test/*.js"
   },
   "files": [
     "bin/*",

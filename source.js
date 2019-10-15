@@ -26,6 +26,12 @@ const kSourceStream = Symbol('Source.stream')
 class Source extends Origin {
 
   /**
+   * Default options for a `Source` class instance.
+   * @public
+   * @static
+   * @param {?(Object)} defaults
+   * @param {...?(Object)} overrides
+   * @return {Object}
    */
   static defaults(defaults, ...overrides) {
     return Origin.defaults({
@@ -37,6 +43,7 @@ class Source extends Origin {
   }
 
   /**
+   * @private
    */
   [Box.options](opts) {
     super[Box.options](opts)
@@ -55,6 +62,7 @@ class Source extends Origin {
   }
 
   /**
+   * @private
    */
   [Box.init](opts) {
     super[Box.init](opts)
@@ -63,18 +71,21 @@ class Source extends Origin {
   }
 
   /**
+   * @private
    */
   [Box.codec](opts) {
     return null
   }
 
   /**
+   * @private
    */
   [Box.storage](storage, opts) {
     return source(this, this.uri, storage, null, opts)
   }
 
   /**
+   * @private
    */
   [Box.ready](opts, done) {
     super[Box.ready](opts, (err) => {
@@ -89,7 +100,8 @@ class Source extends Origin {
   }
 
   /**
-  */
+   * @private
+   */
   [kSourceStream](opts, done) {
     const { highWaterMark } = opts
     get(this.uri, { highWaterMark }, done)
@@ -97,14 +109,21 @@ class Source extends Origin {
 }
 
 /**
-*/
+ * The `Source.stream` symbol for overloading the handler
+ * for getting source stream stream.
+ * @public
+ * @static
+ * @type {Symbol}
+ */
+Source.stream = kSourceStream
+
+/**
+ * Factory for creating `Sink` instances.
+ * @public
+ */
 function createSource(...args) {
   return new Source(...args)
 }
-
-/**
- */
-Source.stream = kSourceStream
 
 /**
  * Module exports.

@@ -17,7 +17,7 @@ $ npm install little-network-box # from github for now
 ## Example
 
 ```js
-const { Origin, Sink, storage } = require('little-network-box')
+const { Origin, Sink } = require('little-network-box')
 const pump = require('pump')
 const path = require('path')
 const ram = require('random-access-memory')
@@ -31,7 +31,7 @@ const origin = new Origin(ram)
 origin.ready(() => {
   const input = origin.createWriteStream()
   const video = fs.createReadStream(video, { highWaterMark: 1024 })
-  const sink = new Sink(storage.sink(copy), origin.key, {
+  const sink = new Sink(copy, origin.key, {
     encryptionKey: origin.encryptionKey,
     nonce: origin.nonce
   })
@@ -133,7 +133,15 @@ Read only accessor for the Box's origin state.
 
 ### `const options = Box.defaults(defaults, ...overrides)`
 
-Creates an options object that can be passed to the `Box` constructor.
+Creates an options object that can be passed to the `Box` constructor
+where options can at least be:
+
+```js
+{
+  storeSecretKey: false,
+  live: true,
+}
+```
 
 ##### Usage
 
@@ -426,10 +434,233 @@ trie.put('hello', 'world', (err) => {
 })
 ```
 
+### `const node = new Node(storage, key, options)`
+
+The `Node` class represents an extended `Box` class that
+creates and joins a network swarm replicating with peers
+that connect to it. Storage is encrypted using the XSalsa20
+cipher encoding.
+
+#### Usage
+
+```js
+const node = new Node(storage[, key, [options]])
+```
+
+Where `storage`, `key`, and `options` are the same arguments for `Box`
+and `options` is passed directly to the `Network` (and the [hyperswarm
+constructor][hyperswarm]).
+
+#### `node.encryptionKey`
+
+Encryption key used for the XSalsa20 cipher to encrypt storage data.
+
+#### `node.nonce`
+
+Nonce used for the XSalsa20 cipher to encrypt storage data.
+
+### `const options = Node.defaults(defaults, ...overrides)`
+
+Creates an options object that can be passed to the `Node` constructor
+where options can at least be those returned by `Box.defaults()` and:
+
+```js
+{
+  announce: true,
+  lookup: true,
+  download: true,
+  upload: true,
+  ephemeral: true,
+  encrypt: true,
+}
+```
+
+##### Usage
+
+```js
+const options = Node.defaults(defaults, ...overrides)
+```
+
+Where default options described by the `Node` class can be overloaded by a
+given `defaults` object and subsequently with any number of override
+objects passed in as _rest arguments_ `...overrides`.
+
+### `Node.connection`
+
+Classes who extend the `Node` class who are interested in providing a
+custom connection handler or short circuit before the replication begins
+for the instance Hypercore feed.
+
+```js
+class ExtendedNode extends Node {
+  [Node.connection](connection, info) {
+    // abort replication and handle connection here
+    return false
+  }
+}
+```
+
+### `const edge = new Edge(storage, key, options)`
+
+The `Edge` class represents an extended `Node` that is
+live, non-ephemeral and non-sparse.
+
+#### Usage
+
+```js
+const edge = new Edge(storage[, key[, options]])`
+```
+
+Where `storage`, `key`, and `options` are the same arguments for `Node`.
+
+### `const options = Edge.defaults(defaults, ...overrides)`
+
+Creates an options object that can be passed to the `Edge` constructor
+where options can at least be those returned by `Node.defaults()` and:
+
+```js
+{
+  ephemeral: false,
+  sparse: false,
+  origin: true,
+  live: true,
+}
+```
+
+#### Usage
+
+```js
+const options = Edge.defaults(defaults, ...overrides)
+```
+
+Where default options described by the `Edge` class can be overloaded by a
+given `defaults` object and subsequently with any number of override
+objects passed in as _rest arguments_ `...overrides`.
+
+### `const origin = new Origin(storage, key, options)`
+
+The `Origin` class represents an extended `Node` that is
+is an origin, non-ephemeral, only uploads, and does not look up
+peers.
+
+#### Usage
+
+```
+const origin = new Origin(storage[, key[, options]])
+```
+
+Where `storage`, `key`, and `options` are the same arguments for `Node`.
+
+### `const options = Origin.defaults(defaults, ...overrides)`
+
+Creates an options object that can be passed to the `Origin` constructor
+where options can at least be those returned by `Node.defaults()` and:
+
+```js
+{
+  ephemeral: false,
+  download: false,
+  lookup: false,
+  origin: true,
+}
+```
+
+#### Usage
+
+```js
+const options = Origin.defaults(defaults, ...overrides)
+```
+
+Where default options described by the `Origin` class can be overloaded by a
+given `defaults` object and subsequently with any number of override
+objects passed in as _rest arguments_ `...overrides`.
+
+### `const reader = new Reader(storage, key, options)`
+
+The `Reader` class represents an extended `Node` that is
+ephemeral, only downloads, and does not look up
+peers.
+
+#### Usage
+
+```
+const reader = new Reader(storage[, key[, options]])
+```
+
+Where `storage`, `key`, and `options` are the same arguments for `Node`.
+
+### `const options = Reader.defaults(defaults, ...overrides)`
+
+Creates an options object that can be passed to the `Reader` constructor
+where options can at least be those returned by `Node.defaults()` and:
+
+```js
+{
+  announce: false,
+  download: true,
+}
+```
+
+#### Usage
+
+```js
+const options = Reader.defaults(defaults, ...overrides)
+```
+
+Where default options described by the `Reader` class can be overloaded by a
+given `defaults` object and subsequently with any number of override
+objects passed in as _rest arguments_ `...overrides`.
+
+### `const sink = new Sink(storage, key, options)`
+
+The `Sink` class represents an extended `Node` that
+treats the data storage as the contents of a file
+to be downloaded and synced with the network. The `Sink`
+class will decode data using the XSalsa20 cipher for decryption
+before writing to data storage if an `encryptionKey` and `nonce`
+is given.
+
+#### Usage
+
+```
+const sink = new Sink(storage[, key[, options]])
+```
+
+Where `storage` is the path to the destination storage, and `key` and
+`options` are the same arguments for `Node`.
+
+### `const options = Sink.defaults(defaults, ...overrides)`
+
+Creates an options object that can be passed to the `Sink` constructor
+where options can at least be those returned by `Node.defaults()` and:
+
+```js
+{
+  encryptionKey: null,
+  overwrite: true,
+  nonce: null,
+}
+```
+
+#### Usage
+
+```js
+const options = Sink.defaults(defaults, ...overrides)
+```
+
+Where default options described by the `Sink` class can be overloaded by a
+given `defaults` object and subsequently with any number of override
+objects passed in as _rest arguments_ `...overrides`.
+
+
+
 ## License
 
 MIT
 
+
+
 [hypercore]: https://github.com/mafintosh/hypercore
 [hyperswarm]: https://github.com/hyperswarm/hyperswarm
 [random-access-storage]: https://github.com/random-access-storage/random-access-storage
+
