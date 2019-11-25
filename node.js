@@ -174,7 +174,7 @@ class Node extends Box {
     const topic = info.peer && info.peer.topic
 
     if (
-      (!topic & isOrigin) ||
+      (!topic && isOrigin) ||
       Buffer.isBuffer(topic) && 0 === Buffer.compare(topic, discoveryKey)
     ) {
       this.replicate({ ack: true, live, stream, initiator, upload, download })
