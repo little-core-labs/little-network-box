@@ -42,18 +42,13 @@ class Node extends Box {
   }
 
   /**
-   * `Box.options` handler to ensure `nonce`, `discoveryKey`,
-   * and `encryptionKey` are set.
+   * `Box.options` handler to ensure `discoveryKey` and `encryptionKey` are set.
    * @private
    * @method
    * @param {Object} opts
    */
   [Box.options](opts) {
     super[Box.options](opts)
-
-    if (null !== opts.nonce) {
-      opts.nonce = toBuffer(opts.nonce || crypto.randomBytes(24), 'hex')
-    }
 
     if (null !== opts.discoveryKey) {
       opts.discoveryKey = toBuffer(opts.discoveryKey, 'hex')
@@ -76,7 +71,9 @@ class Node extends Box {
 
     this.onconnection = bind(this, this.onconnection)
     this.encryptionKey = opts.encryptionKey
-    this.nonce = opts.nonce
+
+    this.shouldUpload = Boolean(opts.upload)
+    this.shouldDownload = Boolean(opts.download)
 
     if (false !== opts.network) {
       this.network = opts.network || new Network(opts)
@@ -92,11 +89,10 @@ class Node extends Box {
    * @return {?(Object)}
    */
   [Box.codec](opts) {
-    const { encryptionKey, nonce } = opts
-    if (encryptionKey && nonce) {
-      assert(Buffer.isBuffer(nonce))
+    const { encryptionKey } = opts
+    if (encryptionKey) {
       assert(Buffer.isBuffer(encryptionKey))
-      return codecs.xsalsa20({ encryptionKey, nonce })
+      return codecs.xsalsa20({ encryptionKey })
     }
   }
 
@@ -168,8 +164,9 @@ class Node extends Box {
       return
     }
 
-    const { download, upload, encrypt, live } = this
-    const { isOrigin, discoveryKey } = this
+    const download = this.shouldDownload
+    const upload = this.shouldUpload
+    const { isOrigin, live, discoveryKey } = this
     const initiator = info.client
     const topic = info.peer && info.peer.topic
 

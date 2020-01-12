@@ -28,13 +28,14 @@
     "duplexify": "^4.1.1",
     "extend": "^3.0.2",
     "get-uri": "^2.0.3",
-    "hypercore": "^7.7.1",
+    "hypercore": "^8.4.1",
     "hypercore-block-request": "^0.2.0",
-    "hypercore-protocol": "^6.12.0",
+    "hypercore-indexed-file": "^0.1.2",
+    "hypercore-protocol": "^7.7.1",
     "hypercore-ready": "^0.2.0",
     "hypercore-replicate": "^0.3.0",
-    "hypercore-xsalsa20-onwrite-hook": "^0.2.0",
-    "hyperswarm": "^2.3.1",
+    "hypercore-xsalsa20-onwrite-hook": "^1.0.2",
+    "hyperswarm": "^2.4.0",
     "minimist": "^1.2.0",
     "mutexify": "^1.2.0",
     "nanoguard": "^1.2.1",
@@ -52,7 +53,7 @@
     "tar-stream": "^2.1.0",
     "thunky": "^1.0.3",
     "to-buffer": "^1.1.1",
-    "xsalsa20-encoding": "^0.1.0"
+    "xsalsa20-encoding": "^1.0.1"
   },
   "optionalDependencies": {},
   "devDependencies": {

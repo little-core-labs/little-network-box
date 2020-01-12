@@ -16,6 +16,22 @@ const bind = (self, f) => (...args) => f.call(self, ...args)
  */
 class Network extends EventEmitter {
 
+
+  /**
+   * Default options for a `Network` class instance.
+   * @public
+   * @static
+   * @param {?(Object)} defaults
+   * @param {...?(Object)} overrides
+   * @return {Object}
+   */
+  static defaults(defaults, ...overrides) {
+    return Object.assign({
+      encrypt: true,
+      ack: true
+    }, defaults, ...overrides)
+  }
+
   /**
    */
   constructor(opts) {
@@ -25,6 +41,8 @@ class Network extends EventEmitter {
     if (null === opts || 'object' !== typeof opts) {
       opts = {}
     }
+
+    opts = this.constructor.defaults(opts)
 
     this.ondisconnection = bind(this, this.ondisconnection)
     this.onconnection = bind(this, this.onconnection)
@@ -44,6 +62,9 @@ class Network extends EventEmitter {
       this.secretKey = opts.secretKey
     }
 
+    this.encrypt = Boolean(opts.encrypt)
+    this.ack = Boolean(opts.ack)
+
     this.ready(this.onready)
     this.swarm.on('disconnection', this.ondisconnection)
     this.swarm.on('connection', this.onconnection)
@@ -61,12 +82,8 @@ class Network extends EventEmitter {
   /**
    */
   onconnection(socket, info) {
-    const stream = new HypercoreProtocol({
-      // TODO
-      encrypt: false,
-      ack: true,
-      live: true
-    })
+    const { ack, live } = this
+    const stream = new HypercoreProtocol(info.client, { ack, live })
 
     this.emit('connection', stream, info, socket)
     pump(socket, stream, socket)

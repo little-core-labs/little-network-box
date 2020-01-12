@@ -1,5 +1,7 @@
 const { Node } = require('./node')
 const extend = require('extend')
+const hooks = require('./hooks')
+const ram = require('random-access-memory')
 
 /**
  * The `Origin` class represents an extended `Node` that is
@@ -25,7 +27,29 @@ class Origin extends Node {
       download: false,
       lookup: false,
       origin: true,
+      nonces: null,
+      hooks: [],
     }, defaults, ...overrides)
+  }
+
+  /**
+   * @protected
+   */
+  [Node.init](opts) {
+    super[Node.init](opts)
+
+    this.nonces = opts.nonces
+  }
+
+  [Node.options](opts) {
+    super[Node.options](opts)
+    if (opts.encryptionKey && opts.nonces) {
+      opts.hooks.push(hooks.xsalsa20)
+    }
+  }
+
+  [Node.codec](opts) {
+    return null
   }
 }
 

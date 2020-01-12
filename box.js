@@ -251,6 +251,16 @@ class Box extends EventEmitter {
   }
 
   /**
+   * Box instance Hypercore feed noise key pair accessor.
+   * @public
+   * @accessor
+   * @type {?(Object)}
+   */
+  get noiseKeyPair() {
+    return this.feed && this.feed.noiseKeyPair
+  }
+
+  /**
    * Box instance Hypercore feed stats accessor.
    * @public
    * @accessor

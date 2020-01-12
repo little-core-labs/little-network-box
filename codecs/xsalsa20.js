@@ -1,9 +1,8 @@
 const xsalsa20 = require('xsalsa20-encoding')
 
 function codec(opts) {
-  const { nonce } = opts
-  const key = opts.encryptionKey || opts.key
-  return xsalsa20(nonce, key)
+  const key = Buffer.from(opts.encryptionKey || opts.key).slice(0, 32)
+  return xsalsa20(key)
 }
 
 module.exports = codec

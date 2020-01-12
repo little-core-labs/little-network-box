@@ -30,7 +30,6 @@ test('Node(storage, key opts)', (t) => {
     node.ready(() => {
       t.ok('function' === typeof node.onconnection)
       t.ok(Buffer.isBuffer(node.encryptionKey))
-      t.ok(Buffer.isBuffer(node.nonce))
       t.ok(node.network)
       node.close(() => {
         t.pass()
@@ -42,13 +41,11 @@ test('Node(storage, key opts)', (t) => {
     const node = new Node(ram, {
       encryptionKey: null,
       network: false,
-      nonce: null,
     })
 
     node.ready(() => {
       t.ok('function' === typeof node.onconnection)
       t.ok(!Buffer.isBuffer(node.encryptionKey))
-      t.ok(!Buffer.isBuffer(node.nonce))
       t.notOk(node.network)
       node.close(() => {
         t.pass()
@@ -61,7 +58,6 @@ test('Node(storage, key opts)', (t) => {
     node.ready(() => {
       t.ok('function' === typeof node.onconnection)
       t.ok(Buffer.isBuffer(node.encryptionKey))
-      t.ok(Buffer.isBuffer(node.nonce))
       t.notOk(node.network)
       node.close(() => {
         t.end()
@@ -86,9 +82,7 @@ test('Node - replication', (t) => {
       const reader = new Node(ram, source.key, {
         announce: false,
         encryptionKey: source.encryptionKey,
-        nonce: source.nonce,
       })
-
 
       reader.once('connection', (s, i) => {
         t.pass('reader connection')
@@ -130,7 +124,6 @@ test('Node#[Node.connection](stream, info, socket)', (t) => {
       const reader = new ExtendedNode(ram, source.key, {
         announce: false,
         encryptionKey: source.encryptionKey,
-        nonce: source.nonce,
       })
 
       reader.once('connection', (s, i) => {

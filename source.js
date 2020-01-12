@@ -3,8 +3,10 @@ const { Origin } = require('./origin')
 const { source } = require('./storage')
 const { Box } = require('./box')
 const storage = require('./storage')
+const codecs = require('./codecs')
 const extend = require('extend')
 const debug = require('debug')('little-network-box:source')
+const hooks = require('./hooks')
 const pump = require('pump')
 const get = require('get-uri')
 const url = require('url')
@@ -38,7 +40,6 @@ class Source extends Origin {
       encryptionKey: null,
       highWaterMark: 64 * 1024,
       indexing: true,
-      nonce: null
     }, defaults, ...overrides)
   }
 
@@ -51,7 +52,7 @@ class Source extends Origin {
     const u = url.parse(opts.uri)
 
     try {
-      if ('file:' !== u.protocol) {
+      if (!u.protocol) {
         fs.accessSync(opts.uri)
         u.protocol = 'file:'
         opts.uri = url.format(u)
@@ -62,7 +63,7 @@ class Source extends Origin {
   }
 
   /**
-   * @private
+   * @protected
    */
   [Box.init](opts) {
     super[Box.init](opts)

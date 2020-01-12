@@ -1,15 +1,17 @@
 const { Node } = require('./node')
 const { sink } = require('./storage')
 const { Box } = require('./box')
+const codecs = require('./codecs')
 const extend = require('extend')
-const hooks =  require('./hooks')
+const hooks = require('./hooks')
+const ram = require('random-access-memory')
 
 /**
  * The `Sink` class represents an extended `Node` that
  * treats the data storage as the contents of a file
  * to be downloaded and synced with the network. The `Sink`
  * class will decode data using the XSalsa20 cipher for decryption
- * before writing to data storage if an `encryptionKey` and `nonce`
+ * before writing to data storage if an `encryptionKey` and `nonces`
  * is given.
  * @public
  * @class Sink
@@ -29,8 +31,28 @@ class Sink extends Node {
     return Node.defaults({
       encryptionKey: null,
       overwrite: true,
-      nonce: null,
+      nonces: null,
+      hooks: [],
     }, defaults, ...overrides)
+  }
+
+  /**
+   * `Box.init` handler to initialize `Node` instance.
+   * @private
+   * @method
+   * @param {Object} opts
+   */
+  [Box.init](opts) {
+    super[Box.init](opts)
+
+    this.nonces = opts.nonces
+  }
+
+  [Box.options](opts) {
+    super[Box.options](opts)
+    if (opts.encryptionKey && opts.nonces) {
+      opts.hooks.push(hooks.xsalsa20)
+    }
   }
 
   /**
@@ -47,21 +69,6 @@ class Sink extends Node {
    */
   [Box.storage](storage, opts) {
     return sink(this, storage, opts.storage, null, opts)
-  }
-
-  /**
-   * Decodes data using XSalsa20 cipher if
-   * `encryptionKey` and `nonce` were given.
-   * @private
-   */
-  [Box.write](index, data, peer, done) {
-    const { encryptionKey, nonce, feed } = this
-    if (encryptionKey && nonce) {
-      const hook =  hooks.xsalsa20(this)
-      return hook.call(feed, index, data, peer, done)
-    } else {
-      return done(null)
-    }
   }
 }
 
