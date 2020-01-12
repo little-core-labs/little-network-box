@@ -30,7 +30,7 @@ const argv = minimist(process.argv.slice(2), {
     'secret-key',
     'source',
     'origin',
-    'nonce',
+    'nonces',
     'sink',
     'key',
   ],
@@ -82,7 +82,7 @@ async function main() {
       const source = new Source(ram, argv.key && argv['secret-key'] ? argv.key : null, {
         encryptionKey: argv['encryption-key'],
         secretKey: argv['secret-key'],
-        nonce: argv.nonce,
+        nonces: argv.nonces,
         uri: path.resolve(src)
       })
 
@@ -117,7 +117,7 @@ async function main() {
       encryptionKey: argv['encryption-key'],
       storage: raf,
       sparse: true,
-      nonce: argv.nonce,
+      nonces: argv.nonces,
     })
 
     sink.on('error', onerror)
@@ -227,7 +227,7 @@ async function main() {
     const origin = new Origin(ram, argv.key, {
       encryptionKey: argv['encryption-key'],
       secretKey: argv['secret-key'],
-      nonce: argv.nonce,
+      nonces: argv.nonces,
     })
 
     origin.ready(() => {

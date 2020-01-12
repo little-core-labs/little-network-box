@@ -1,7 +1,7 @@
 const secretbox = require('secretbox-encoding')
 
 function codec(opts) {
-  const key = opts.encryptionKey || opts.key
+  const key = Buffer.from(opts.encryptionKey || opts.key).slice(0, 32)
   return secretbox(key)
 }
 
