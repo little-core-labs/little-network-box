@@ -271,6 +271,16 @@ class Box extends EventEmitter {
   }
 
   /**
+   * Box instance Hypercore feed peers accessor.
+   * @public
+   * @accessor
+   * @type {?(Object)}
+   */
+  get peers() {
+    return this.feed && this.feed.peers
+  }
+
+  /**
    * Box instance Hypercore feed extensions accessor.
    * @public
    * @accessor
@@ -559,16 +569,28 @@ class Box extends EventEmitter {
   }
 
   /**
-   * Calls an extension on the Hypercore feed.
-   * Calls `feed.extension(name, message)`
+   * Registers extension hanlders by name on the Hypercore feed.
+   * Calls `feed.registerExtension(name, handlers)`
    * @public
    * @method
    * @param {String} name
-   * @param {Buffer} message}
-   * @return {Mixed}
+   * @param {Object<String,Function>} handlers
+   * @return {Extension}
    */
-  extension(name, message) {
-    return this.feed.extension(name, message)
+  registerExtension(name, handlers) {
+    return this.feed.registerExtension(name, handlers)
+  }
+
+  /**
+   * An alias to `registerExtension()`
+   * @public
+   * @method
+   * @param {String} name
+   * @param {Object<String,Function>} handlers
+   * @return {Extension}
+   */
+  extension(name, handlers) {
+    return this.registerExtension(name, handlers)
   }
 
   /**

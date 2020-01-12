@@ -405,8 +405,8 @@ test('Box#replicate(opts)', (t) => {
     writer.append(Buffer.from('hello'), (err) => {
       t.notOk(err)
       const reader = new Box(ram, writer.key)
-      const stream = writer.replicate()
-      pump(stream, reader.replicate(), stream, (err) => {
+      const stream = writer.replicate(false)
+      pump(stream, reader.replicate(true), stream, (err) => {
         t.notOk(err)
         reader.head((err, head) => {
           t.notOk(err)
@@ -468,7 +468,7 @@ test('Box#download(range, callback)', (t) => {
     origin.append('hello'.split('').map(Buffer.from), (err) => {
       t.notOk(err)
       const destination = new Box(ram, origin.key, { sparse: true })
-      const stream = origin.replicate()
+      const stream = origin.replicate(false)
 
       let missing = 0
       for (let i = 0; i < origin.length; ++i) {
@@ -481,7 +481,7 @@ test('Box#download(range, callback)', (t) => {
         })
       }
 
-      pump(stream, destination.replicate(), stream, (err) => {
+      pump(stream, destination.replicate(true), stream, (err) => {
         t.notOk(err)
       })
     })
@@ -494,9 +494,9 @@ test('Box#undownload(range)', (t) => {
     origin.append('hello'.split('').map(Buffer.from), (err) => {
       t.notOk(err)
       const destination = new Box(ram, origin.key, { sparse: true })
-      const stream = origin.replicate()
+      const stream = origin.replicate(false)
 
-      pump(stream, destination.replicate(), stream)
+      pump(stream, destination.replicate(true), stream)
 
       for (let i = 0; i < origin.length; ++i) {
         destination.download({start: i, end: i + 1}, (err) => {
@@ -584,7 +584,7 @@ test('Box#downloaded(start, end)', (t) => {
     origin.append('hello'.split('').map(Buffer.from), (err) => {
       t.notOk(err)
       const destination = new Box(ram, origin.key, { sparse: true })
-      const stream = origin.replicate()
+      const stream = origin.replicate(false)
 
       let missing = 0
       for (let i = 0; i < origin.length; ++i) {
@@ -598,7 +598,7 @@ test('Box#downloaded(start, end)', (t) => {
         })
       }
 
-      pump(stream, destination.replicate(), stream, (err) => {
+      pump(stream, destination.replicate(true), stream, (err) => {
         t.notOk(err)
       })
     })
@@ -687,41 +687,13 @@ test('Box#onappend()', (t) => {
   })
 })
 
-test('Box#onextension(name, message, peer)', (t) => {
-  const box = new Box(ram, { extensions: [ 'hello' ] })
-  box.ready(() => {
-    const other = new Box(ram, box.key, { extensions: [ 'hello' ] })
-    const stream = box.replicate({ live: true })
-    const { onextension } = other
-    other.onextension = (...args) => {
-      stream.finalize()
-      t.end()
-      return onextension(...args)
-    }
-
-    other.on('extension', () => {
-      t.pass('extension')
-    })
-
-    other.ready(() => {
-      pump(stream, other.replicate({ live: true }), stream, (err) => {
-        t.notOk(err)
-      })
-
-      box.feed.on('peer-add', () => {
-        box.extension('hello', Buffer.from('world'))
-      })
-    })
-  })
-})
-
 test('Box#ondownload(index, data)', (t) => {
   const writer = new Box(ram)
   writer.ready(() => {
     writer.append(Buffer.from('hello'), (err) => {
       t.notOk(err)
       const reader = new Box(ram, writer.key)
-      const stream = writer.replicate()
+      const stream = writer.replicate(false)
 
       const { ondownload } = reader
       reader.ondownload = (...args) => {
@@ -729,7 +701,7 @@ test('Box#ondownload(index, data)', (t) => {
         return ondownload(...args)
       }
 
-      pump(stream, reader.replicate(), stream, (err) => {
+      pump(stream, reader.replicate(true), stream, (err) => {
         t.notOk(err)
         reader.head((err, head) => {
           t.notOk(err)
@@ -752,9 +724,9 @@ test('Box#onupload(index, data)', (t) => {
     writer.append(Buffer.from('hello'), (err) => {
       t.notOk(err)
       const reader = new Box(ram, writer.key)
-      const stream = writer.replicate()
+      const stream = writer.replicate(false)
 
-      pump(stream, reader.replicate(), stream, (err) => {
+      pump(stream, reader.replicate(true), stream, (err) => {
         t.notOk(err)
         reader.head((err, head) => {
           t.notOk(err)
@@ -771,7 +743,7 @@ test('Box#onsync()', (t) => {
     writer.append(Buffer.from('hello'), (err) => {
       t.notOk(err)
       const reader = new Box(ram, writer.key)
-      const stream = writer.replicate()
+      const stream = writer.replicate(false)
 
       const { onsync } = reader
       reader.onsync = (...args) => {
@@ -779,7 +751,7 @@ test('Box#onsync()', (t) => {
         return onsync(...args)
       }
 
-      pump(stream, reader.replicate(), stream, (err) => {
+      pump(stream, reader.replicate(true), stream, (err) => {
         t.notOk(err)
         reader.head((err, head) => {
           t.notOk(err)
