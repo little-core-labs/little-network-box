@@ -77,6 +77,10 @@ async function main() {
     argv.source = [ argv.source ].filter(Boolean)
   }
 
+  if (argv.debug) {
+    require('debug').enable(`${pkg.name}*`)
+  }
+
   if (argv.source.length) {
     for (const src of argv.source) {
       const source = new Source(ram, argv.key && argv['secret-key'] ? argv.key : null, {
@@ -149,6 +153,7 @@ async function main() {
         pending++
         rimraf(filename, () => {
           if (0 === --pending) {
+            sink.close()
             process.nextTick(process.exit)
           }
         })
@@ -178,7 +183,6 @@ async function main() {
 
         console.log(' info: sink %s did finish syncing %s blocks in %s seconds',
           prettyHash(sink.key), sink.length, ((Date.now() - now) / 1000).toFixed(2))
-        sink.close(onclose)
       }
     })
 

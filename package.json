@@ -5,7 +5,7 @@
   "main": "index.js",
   "bin": {
     "little-network-box": "bin/little-network-box",
-    "little-box": "bin/little-network-box"
+    "lnb": "bin/little-network-box"
   },
   "scripts": {
     "coverage": "nyc npm run test",
