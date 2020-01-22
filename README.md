@@ -12,7 +12,9 @@ $ npm install little-network-box # from github for now
 
 ## Status
 
-> WIP
+[![Actions Status](https://github.com/little-core-labs/little-network-box/workflows/Node%20CI/badge.svg)](https://github.com/little-core-labs/little-network-box/actions)
+
+> **Development/Testing/Documentation**
 
 ## Example
 
@@ -658,9 +660,6 @@ objects passed in as _rest arguments_ `...overrides`.
 
 MIT
 
-
-
 [hypercore]: https://github.com/mafintosh/hypercore
 [hyperswarm]: https://github.com/hyperswarm/hyperswarm
 [random-access-storage]: https://github.com/random-access-storage/random-access-storage
-
