@@ -26,22 +26,22 @@ const ram = require('random-access-memory')
 const raf = require('random-access-file')
 const fs = require('fs')
 
-const video = path.resolve(__dirname, 'video.mp4')
-const copy = path.resolve(__dirname, 'copy.mp4')
-const origin = new Origin(ram)
+const nonces = ram()
+const source = path.resolve(__dirname, 'video.mp4')
+const destination = path.resolve(__dirname, 'copy.mp4')
+const origin = new Origin(ram, { nonces })
 
 origin.ready(() => {
   const input = origin.createWriteStream()
-  const video = fs.createReadStream(video, { highWaterMark: 1024 })
-  const sink = new Sink(copy, origin.key, {
+  const video = fs.createReadStream(source)
+  const sink = new Sink(destination, origin.key, {
     encryptionKey: origin.encryptionKey,
-    nonce: origin.nonce
+    nonces: origin.nonces
   })
 
   pump(video, input, (err) => {
     sink.on('sync', ()=> {
       if (sink.byteLength === origin.byteLength) {
-        console.log('sync')
         sink.close()
         origin.close()
         process.nextTick(process.exit)
@@ -275,41 +275,23 @@ implement this Symbol method.
 ```js
 const replicate = require('little-network-box/replicate')
 const encoding = require('xsalsa20-encoding')
-const xsalsa20 = require('xsalsa20')
 const crypto = require('crypto')
 
-const nonce = crypto.randomBytes(24)
+const secret = crypto.randomBytes(32)
 
-// encrypts plaintext into ciphertext before writing
-// to storage
+// encrypts plaintext into ciphertext before writing to storage
 class EncryptedBox extends Box {
   [Box.codec](opts) {
-    return encoding(nonce, opts.key)
+    return encoding(opts.secret)
   }
 }
 
-// decrypts data before writing to storage so
-// `get()`, `head()`, etc return plaintext
-class DecryptedBox extends Box {
-  [Box.write](index, data, peer, done) {
-    try {
-      const xor = xsalsa20(nonce, this.key)
-      xor.update(data, data)
-      xor.finalize()
-      done(null)
-    } catch (err) {
-      done(err)
-    }
-  }
-}
-
-const encrypted = new EncryptedBox(ram)
+const encrypted = new EncryptedBox(ram, { secret })
 encrypted.ready(() => {
-  const decrypted = new DecryptedBox(ram, encrypted.key)
-  decrypted.ready(() => {
-    replicate(encrypted, decrypted, (err) => {
-      decrypted.head(console.log) // hello world
-    })
+  const decrypted = new EncryptedBox(ram, { secret })
+  encrypted.append(Buffer.from('hello world'))
+  replicate(encrypted, decrypted, (err) => {
+    decrypted.head(console.log) // hello world
   })
 })
 ```
@@ -421,7 +403,7 @@ class EncryptedOriginTrieBox extends Box {
   }
 
   [Box.codec](opts) {
-    return xsalsa20(opts.nonce, opts.key)
+    return xsalsa20(opts.secret)
   }
 
   get [Box.origin]() {
@@ -429,8 +411,8 @@ class EncryptedOriginTrieBox extends Box {
   }
 }
 
-const nonce = crypto.randomBytes(24)
-const trie = new EncryptedOriginTrieBox(ram, { nonce })
+const secret = crypto.randomBytes(32)
+const trie = new EncryptedOriginTrieBox(ram, { secret })
 trie.put('hello', 'world', (err) => {
   trie.get('hello', console.log) // { ..., key: 'hello', value: 'world' }
 })
@@ -456,10 +438,6 @@ constructor][hyperswarm]).
 #### `node.encryptionKey`
 
 Encryption key used for the XSalsa20 cipher to encrypt storage data.
-
-#### `node.nonce`
-
-Nonce used for the XSalsa20 cipher to encrypt storage data.
 
 ### `const options = Node.defaults(defaults, ...overrides)`
 
@@ -619,8 +597,7 @@ The `Sink` class represents an extended `Node` that
 treats the data storage as the contents of a file
 to be downloaded and synced with the network. The `Sink`
 class will decode data using the XSalsa20 cipher for decryption
-before writing to data storage if an `encryptionKey` and `nonce`
-is given.
+before writing to data storage if an `encryptionKey` is given.
 
 #### Usage
 
@@ -640,7 +617,8 @@ where options can at least be those returned by `Node.defaults()` and:
 {
   encryptionKey: null,
   overwrite: true,
-  nonce: null,
+  nonces: null,
+  hooks: []
 }
 ```
 
